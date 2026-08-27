@@ -4,36 +4,21 @@
 
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * =========================================================================
- * LOGSHARE - GOOGLE DRIVE & GOOGLE SHEETS WEBHOOK DE HOMOLOGAÇÃO
+ * LOGSHARE - GOOGLE DRIVE & GOOGLE SHEETS WEBHOOK (GERAÇÃO NATIVA DE PDFS)
  * =========================================================================
  * 
- * 📌 PASSO A PASSO PARA ATIVAÇÃO (DURAÇÃO: 2 MINUTOS):
+ * 📌 PASSO A PASSO PARA ATUALIZAÇÃO NO GOOGLE APPS SCRIPT:
  * 
- * 1. Abra sua Planilha do Google Sheets (ex: "LogShare_Homologacao_Transportadores").
- * 2. No menu superior da planilha, clique em: Extensões > Apps Script.
- * 3. Apague tudo o que estiver lá e COLE todo este código.
- * 
- * ⚠️ ETAPA FUNDAMENTAL DE PERMISSÃO:
- * 4. No topo da tela do Apps Script, selecione a função "testarLocalmente" no menu dropdown e clique em "Executar" (ícone de Play ▶️).
- * 5. O Google vai exibir a janela "Autorização necessária":
- *    - Clique em "Revisar permissões" > Escolha sua conta Google.
- *    - Clique em "Avançado" (link pequeno no rodapé) > "Acessar (não seguro)".
- *    - Clique em "Permitir".
- *    *(Isso autoriza o script a criar pastas no Drive e escrever na planilha).*
- * 
- * 🚀 IMPLANTAÇÃO COMO WEBHOOK:
- * 6. Clique no botão azul "Implantar" (topo direito) > "Nova Implantação".
- * 7. Clique na engrenagem ⚙️ ao lado de "Selecionar tipo" e escolha "App da Web" (Web App).
- * 8. Preencha a configuração:
- *    - Descrição: "LogShare Webhook v1"
- *    - Executar como: "Eu (seu e-mail)"
- *    - Quem pode acessar: "Qualquer pessoa" (Anyone) -> OBRIGATÓRIO!
- * 9. Clique em "Implantar" e copie o "URL do aplicativo da Web" (termina com /exec).
- * 10. Cole esse URL no painel da LogShare e clique em "Testar Sincronização".
+ * 1. Abra sua Planilha do Google Sheets (Extensões > Apps Script).
+ * 2. Substitua todo o código por este.
+ * 3. Salve (Ctrl+S / Cmd+S).
+ * 4. Clique em "Implantar" (topo direito) > "Gerenciar implantações".
+ * 5. Clique no ícone de Lápis ✏️ (Editar).
+ * 6. Em "Versão", escolha "Nova versão".
+ * 7. Clique em "Implantar".
  * =========================================================================
  */
 
-// Função de Teste Local no editor do Apps Script (Gera as permissões necessárias)
 function testarLocalmente() {
   var mockCarrier = {
     protocol: "HOM-2026-TESTE",
@@ -51,12 +36,38 @@ function testarLocalmente() {
       seguradora: "Porto Seguro Transportes",
       lmg: 1500000
     },
+    documentos: [
+      {
+        nome: "Cartão CNPJ atualizado",
+        status: "VALIDO",
+        vigencia: "31/12/2028",
+        arquivoNome: "Cartao_CNPJ_12345678000190.pdf"
+      },
+      {
+        nome: "Registro RNTRC / ANTT ativo",
+        status: "VALIDO",
+        vigencia: "25/11/2027",
+        arquivoNome: "Certificado_RNTRC_ANTT.pdf"
+      },
+      {
+        nome: "Apólice RCTR-C vigente (Acidentes)",
+        status: "VALIDO",
+        vigencia: "15/10/2026",
+        arquivoNome: "Apolice_Seguro_RCTRC.pdf"
+      },
+      {
+        nome: "Apólice RC-DC vigente (Roubo)",
+        status: "VALIDO",
+        vigencia: "15/10/2026",
+        arquivoNome: "Apolice_Seguro_RCDC.pdf"
+      }
+    ],
     parecer: {
       statusFinal: "APTA",
       dataEmissao: new Date().toISOString(),
-      resumoExecutivo: "Transportador com documentação 100% regular e baixo risco operacional.",
-      restricoesOperacionais: ["Monitoramento via Isca Carga", "Escolta acima de R$ 800k"],
-      acoesRequeridas: "Nenhuma pendência."
+      resumoExecutivo: "Transportador com documentação 100% regular, apólices ativas e baixo risco operacional.",
+      restricoesOperacionais: ["Monitoramento obrigatório via telemetria", "Escolta armada acima de R$ 800.000,00"],
+      acoesRequeridas: "Nenhuma pendência impeditiva."
     }
   };
 
@@ -123,17 +134,20 @@ function processarSincronizacao(data) {
     carrierFolder = rootFolder.createFolder(carrierFolderName);
   }
 
-  // 3. Subpastas: Documentos e Pareceres
+  // 3. Subpastas Oficiais
   var docsFolder = getOrCreateSubfolder(carrierFolder, "01_Documentos_Cadastrais");
   var parecerFolder = getOrCreateSubfolder(carrierFolder, "02_Pareceres_Homologacao");
 
-  // 4. Salvar Todos os Arquivos e Anexos Reais na Pasta 01_Documentos_Cadastrais
+  // 4. Salvar Todos os Arquivos em Formato PDF Oficial na pasta 01_Documentos_Cadastrais
   if (data.documentos && Array.isArray(data.documentos)) {
     for (var i = 0; i < data.documentos.length; i++) {
       var doc = data.documentos[i];
       if (doc) {
-        var fileName = doc.arquivoNome || (doc.nome.replace(/[^a-zA-Z0-9_-]/g, "_") + ".pdf");
-        
+        var baseName = (doc.arquivoNome || doc.nome || "Documento").replace(/\\.txt$/i, "");
+        if (!baseName.toLowerCase().endsWith(".pdf") && !baseName.toLowerCase().endsWith(".png") && !baseName.toLowerCase().endsWith(".jpg")) {
+          baseName = baseName.replace(/[^a-zA-Z0-9_-]/g, "_") + ".pdf";
+        }
+
         if (doc.arquivoBase64) {
           try {
             var base64Content = doc.arquivoBase64;
@@ -143,66 +157,102 @@ function processarSincronizacao(data) {
             var decodedBytes = Utilities.base64Decode(base64Content);
             var mimeType = doc.arquivoMime || "application/pdf";
             
-            var existingFiles = docsFolder.getFilesByName(fileName);
+            var existingFiles = docsFolder.getFilesByName(baseName);
             if (!existingFiles.hasNext()) {
-              var fileBlob = Utilities.newBlob(decodedBytes, mimeType, fileName);
+              var fileBlob = Utilities.newBlob(decodedBytes, mimeType, baseName);
               docsFolder.createFile(fileBlob);
             }
           } catch (fileErr) {
-            Logger.log("Erro ao salvar anexo " + doc.nome + ": " + fileErr.toString());
+            Logger.log("Erro ao decodificar Base64 de " + doc.nome + ": " + fileErr.toString());
           }
         } else {
-          // Se for registro cadastral sem base64 (ex: dados mockados), cria certidão descritiva
-          var existingTextFiles = docsFolder.getFilesByName(fileName + ".txt");
-          if (!existingTextFiles.hasNext()) {
-            var certText = "CERTIFICADO DE CONFORMIDADE DOCUMENTAL — LOGSHARE\\n" +
-                           "==================================================\\n" +
-                           "Documento: " + (doc.nome || "") + "\\n" +
-                           "Situação: " + (doc.status || "REGULAR") + "\\n" +
-                           "Vigência / Validade: " + (doc.vigencia || "Indeterminada") + "\\n" +
-                           "Arquivo Referência: " + (doc.arquivoNome || "Anexo Validado") + "\\n" +
-                           "Data de Processamento: " + new Date().toISOString();
-            docsFolder.createFile(fileName + ".txt", certText, "text/plain");
+          // Quando o arquivo for cadastrado sem Base64 (ex: sincronização de lote), gera PDF com layout oficial
+          var pdfFileName = baseName.endsWith(".pdf") ? baseName : (baseName + ".pdf");
+          var existingPdf = docsFolder.getFilesByName(pdfFileName);
+          
+          if (!existingPdf.hasNext()) {
+            var certHtml = "<html><body style='font-family: Arial, sans-serif; padding: 35px; color: #1E293B;'>" +
+              "<div style='border-bottom: 2px solid #0056D2; padding-bottom: 12px; margin-bottom: 20px;'>" +
+              "<h2 style='color: #0056D2; margin: 0; font-size: 18px;'>LOGSHARE — COMPROVANTE DE CONFORMIDADE DOCUMENTAL</h2>" +
+              "<p style='color: #64748B; margin: 4px 0 0 0; font-size: 12px;'>Transportador: " + (data.razaoSocial || "") + " | CNPJ: " + (data.cnpj || "") + "</p>" +
+              "</div>" +
+              "<table style='width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;'>" +
+              "<tr><td style='padding: 8px; border: 1px solid #E2E8F0; font-weight: bold; width: 35%; background: #F8FAFC;'>Tipo de Documento</td><td style='padding: 8px; border: 1px solid #E2E8F0;'>" + (doc.nome || "") + "</td></tr>" +
+              "<tr><td style='padding: 8px; border: 1px solid #E2E8F0; font-weight: bold; background: #F8FAFC;'>Situação Cadastral</td><td style='padding: 8px; border: 1px solid #E2E8F0; font-weight: bold; color: " + (doc.status === 'VALIDO' ? '#059669' : '#DC2626') + ";'>" + (doc.status || "REGULAR") + "</td></tr>" +
+              "<tr><td style='padding: 8px; border: 1px solid #E2E8F0; font-weight: bold; background: #F8FAFC;'>Data de Vigência / Validade</td><td style='padding: 8px; border: 1px solid #E2E8F0;'>" + (doc.vigencia || "Indeterminada") + "</td></tr>" +
+              "<tr><td style='padding: 8px; border: 1px solid #E2E8F0; font-weight: bold; background: #F8FAFC;'>Arquivo de Origem</td><td style='padding: 8px; border: 1px solid #E2E8F0;'>" + (doc.arquivoNome || "Anexo Homologado") + "</td></tr>" +
+              "<tr><td style='padding: 8px; border: 1px solid #E2E8F0; font-weight: bold; background: #F8FAFC;'>Data de Registro no Sistema</td><td style='padding: 8px; border: 1px solid #E2E8F0;'>" + new Date().toLocaleDateString('pt-BR') + "</td></tr>" +
+              "</table>" +
+              "<div style='background: #F0FDF4; border: 1px solid #86EFAC; border-radius: 6px; padding: 12px; font-size: 12px; color: #065F46;'>" +
+              "✓ Este comprovante atesta a recepção e auditoria do documento nos padrões de homologação de transportadores da LogShare." +
+              "</div>" +
+              "</body></html>";
+
+            var certPdf = HtmlService.createHtmlOutput(certHtml).getAs('application/pdf').setName(pdfFileName);
+            docsFolder.createFile(certPdf);
           }
         }
       }
     }
   }
 
-  // 5. Salvar Dossiê Completo em JSON
-  carrierFolder.createFile(
-    "dossie_completo_" + cleanCnpj + ".json", 
-    JSON.stringify(data, null, 2), 
-    "application/json"
-  );
-
-  // 6. Salvar Parecer Oficial Formatado em TXT
+  // 5. Salvar Parecer Oficial Formatado em PDF na pasta 02_Pareceres_Homologacao
   if (data.parecer) {
-    var parecerText = "PARECER OFICIAL DE HOMOLOGAÇÃO DE TRANSPORTADOR — LOGSHARE\\n" +
-                      "============================================================\\n" +
-                      "Protocolo: " + (data.protocol || "N/A") + "\\n" +
-                      "Transportadora: " + (data.razaoSocial || "") + " (CNPJ: " + (data.cnpj || "") + ")\\n" +
-                      "Status Final: " + (data.parecer.statusFinal || data.status || "") + "\\n" +
-                      "Score Global de Risco: " + (data.scoreTotal || 0) + " / 1000 pts\\n" +
-                      "Data de Emissão: " + (data.parecer.dataEmissao || new Date().toISOString()) + "\\n\\n" +
-                      "1. RESUMO EXECUTIVO:\\n" + (data.parecer.resumoExecutivo || "Não informado.") + "\\n\\n" +
-                      "2. RESTRIÇÕES & CONDICIONANTES OPERACIONAIS:\\n" + 
-                      ((data.parecer.restricoesOperacionais && data.parecer.restricoesOperacionais.length > 0) 
-                        ? "- " + data.parecer.restricoesOperacionais.join("\\n- ") 
-                        : "Nenhuma restrição imposta.") + "\\n\\n" +
-                      "3. AÇÕES REQUERIDAS / PENDÊNCIAS:\\n" + (data.parecer.acoesRequeridas || "Nenhuma pendência.");
+    var parecerPdfName = "Parecer_Oficial_Homologacao_" + cleanCnpj + ".pdf";
+    var existingParecer = parecerFolder.getFilesByName(parecerPdfName);
 
-    parecerFolder.createFile("Parecer_Oficial_" + cleanCnpj + ".txt", parecerText, "text/plain");
+    if (!existingParecer.hasNext()) {
+      var statusColor = (data.parecer.statusFinal === 'APTA') ? '#059669' : (data.parecer.statusFinal === 'APTA_COM_RESTRICOES') ? '#D97706' : '#DC2626';
+      var statusLabel = (data.parecer.statusFinal === 'APTA') ? 'APTA' : (data.parecer.statusFinal === 'APTA_COM_RESTRICOES') ? 'APTA COM RESTRIÇÕES' : 'NÃO APTA';
+
+      var parecerHtml = "<html><body style='font-family: Arial, sans-serif; padding: 35px; color: #1E293B;'>" +
+        "<div style='border-bottom: 3px solid #0056D2; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between;'>" +
+        "<div>" +
+        "<h1 style='color: #0056D2; margin: 0; font-size: 20px;'>LOGSHARE — PARECER TÉCNICO DE HOMOLOGAÇÃO</h1>" +
+        "<p style='color: #64748B; margin: 4px 0 0 0; font-size: 12px;'>Comitê de Compliance, Gestão de Risco & Segurança Operacional</p>" +
+        "</div>" +
+        "</div>" +
+        "<table style='width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px;'>" +
+        "<tr><td style='padding: 6px 10px; border: 1px solid #E2E8F0; font-weight: bold; width: 30%; background: #F8FAFC;'>Protocolo</td><td style='padding: 6px 10px; border: 1px solid #E2E8F0; font-weight: bold; font-family: monospace;'>" + (data.protocol || "N/A") + "</td></tr>" +
+        "<tr><td style='padding: 6px 10px; border: 1px solid #E2E8F0; font-weight: bold; background: #F8FAFC;'>Razão Social</td><td style='padding: 6px 10px; border: 1px solid #E2E8F0;'>" + (data.razaoSocial || "") + "</td></tr>" +
+        "<tr><td style='padding: 6px 10px; border: 1px solid #E2E8F0; font-weight: bold; background: #F8FAFC;'>CNPJ</td><td style='padding: 6px 10px; border: 1px solid #E2E8F0;'>" + (data.cnpj || "") + "</td></tr>" +
+        "<tr><td style='padding: 6px 10px; border: 1px solid #E2E8F0; font-weight: bold; background: #F8FAFC;'>Status Final</td><td style='padding: 6px 10px; border: 1px solid #E2E8F0; font-weight: bold; color: " + statusColor + "; font-size: 13px;'>" + statusLabel + "</td></tr>" +
+        "<tr><td style='padding: 6px 10px; border: 1px solid #E2E8F0; font-weight: bold; background: #F8FAFC;'>Score Global de Risco</td><td style='padding: 6px 10px; border: 1px solid #E2E8F0; font-weight: bold;'>" + (data.scoreTotal || 0) + " / 1000 pontos</td></tr>" +
+        "<tr><td style='padding: 6px 10px; border: 1px solid #E2E8F0; font-weight: bold; background: #F8FAFC;'>Data de Emissão</td><td style='padding: 6px 10px; border: 1px solid #E2E8F0;'>" + new Date().toLocaleDateString('pt-BR') + "</td></tr>" +
+        "</table>" +
+        "<h3 style='color: #0F172A; font-size: 14px; border-bottom: 1px solid #CBD5E1; padding-bottom: 4px; margin-top: 16px;'>1. Resumo Executivo da Análise</h3>" +
+        "<p style='font-size: 12px; line-height: 1.5; margin: 6px 0 16px 0;'>" + (data.parecer.resumoExecutivo || "Não informado.") + "</p>" +
+        "<h3 style='color: #0F172A; font-size: 14px; border-bottom: 1px solid #CBD5E1; padding-bottom: 4px;'>2. Restrições e Condicionantes Operacionais</h3>" +
+        "<p style='font-size: 12px; line-height: 1.5; margin: 6px 0 16px 0;'>" + ((data.parecer.restricoesOperacionais && data.parecer.restricoesOperacionais.length > 0) ? "• " + data.parecer.restricoesOperacionais.join("<br>• ") : "Nenhuma restrição imposta. Operação liberada conforme regras de trânsito.") + "</p>" +
+        "<h3 style='color: #0F172A; font-size: 14px; border-bottom: 1px solid #CBD5E1; padding-bottom: 4px;'>3. Ações Requeridas & Pendências</h3>" +
+        "<p style='font-size: 12px; line-height: 1.5; margin: 6px 0 20px 0;'>" + (data.parecer.acoesRequeridas || "Nenhuma ação corretiva pendente.") + "</p>" +
+        "<div style='margin-top: 35px; border-top: 1px solid #E2E8F0; padding-top: 10px; font-size: 10px; color: #94A3B8; text-align: center;'>" +
+        "Este documento é gerado e assinado digitalmente nos termos da política de compliance LogShare.</div>" +
+        "</body></html>";
+
+      var parecerPdf = HtmlService.createHtmlOutput(parecerHtml).getAs('application/pdf').setName(parecerPdfName);
+      parecerFolder.createFile(parecerPdf);
+    }
   }
 
-  // 6. Atualizar Linha na Planilha Google
+  // 6. Salvar Dossiê Completo em JSON estruturado
+  var jsonFileName = "dossie_completo_" + cleanCnpj + ".json";
+  var existingJson = carrierFolder.getFilesByName(jsonFileName);
+  if (!existingJson.hasNext()) {
+    carrierFolder.createFile(
+      jsonFileName, 
+      JSON.stringify(data, null, 2), 
+      "application/json"
+    );
+  }
+
+  // 7. Atualizar Linha na Planilha Google
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   var sheet;
 
   if (spreadsheet) {
     sheet = spreadsheet.getActiveSheet();
   } else {
-    // Se o script for standalone, busca ou cria uma planilha na pasta raiz
     var sheetFiles = rootFolder.getFilesByName("LogShare_Planilha_Mestre");
     if (sheetFiles.hasNext()) {
       sheet = SpreadsheetApp.open(sheetFiles.next()).getActiveSheet();
@@ -214,7 +264,6 @@ function processarSincronizacao(data) {
   }
 
   if (sheet.getLastRow() === 0) {
-    // Cabeçalho estilizado
     sheet.appendRow([
       "Data/Hora",
       "Protocolo",
@@ -251,7 +300,7 @@ function processarSincronizacao(data) {
 
   return {
     status: "SUCCESS",
-    message: "Transportador sincronizado com sucesso no Google Drive e Planilha!",
+    message: "Transportador, parecer e anexos em PDF sincronizados com sucesso no Google Drive e Planilha!",
     folderUrl: carrierFolder.getUrl(),
     carrier: data.razaoSocial
   };
@@ -265,6 +314,26 @@ function getOrCreateSubfolder(parent, name) {
   return parent.createFolder(name);
 }
 `;
+
+export const OFFICIAL_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyWfv1mwtrLtunYO78fzWhmXGH2CiIC4_RC3l3j4UqV0V9K_XLOlI0UkKQbeIupVkas/exec";
+
+const WEBHOOK_STORAGE_KEY = "LOGSHARE_DRIVE_WEBHOOK_URL_V1";
+
+export function getStoredWebhookUrl() {
+  return (
+    import.meta.env.VITE_GOOGLE_APPS_SCRIPT_WEBHOOK_URL ||
+    localStorage.getItem(WEBHOOK_STORAGE_KEY) ||
+    OFFICIAL_WEBHOOK_URL
+  );
+}
+
+export function saveStoredWebhookUrl(url) {
+  if (url && url.trim()) {
+    localStorage.setItem(WEBHOOK_STORAGE_KEY, url.trim());
+  } else {
+    localStorage.removeItem(WEBHOOK_STORAGE_KEY);
+  }
+}
 
 export async function syncCarrierToGoogleDrive(carrier, webhookUrl) {
   if (!webhookUrl || !webhookUrl.trim()) {
@@ -343,24 +412,3 @@ export async function syncCarrierToGoogleDrive(carrier, webhookUrl) {
     }
   }
 }
-
-export const OFFICIAL_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyWfv1mwtrLtunYO78fzWhmXGH2CiIC4_RC3l3j4UqV0V9K_XLOlI0UkKQbeIupVkas/exec";
-
-const WEBHOOK_STORAGE_KEY = "LOGSHARE_DRIVE_WEBHOOK_URL_V1";
-
-export function getStoredWebhookUrl() {
-  return (
-    import.meta.env.VITE_GOOGLE_APPS_SCRIPT_WEBHOOK_URL ||
-    localStorage.getItem(WEBHOOK_STORAGE_KEY) ||
-    OFFICIAL_WEBHOOK_URL
-  );
-}
-
-export function saveStoredWebhookUrl(url) {
-  if (url && url.trim()) {
-    localStorage.setItem(WEBHOOK_STORAGE_KEY, url.trim());
-  } else {
-    localStorage.removeItem(WEBHOOK_STORAGE_KEY);
-  }
-}
-
