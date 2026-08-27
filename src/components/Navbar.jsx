@@ -11,7 +11,9 @@ export default function Navbar({
   currentUser,
   onLogout,
   onOpenStandalonePortal,
-  onOpenPOP
+  onOpenPOP,
+  cloudStatus,
+  onRefreshCloud
 }) {
   return (
     <header className="navbar-header no-print">
@@ -135,6 +137,29 @@ export default function Navbar({
                 </button>
               )}
             </div>
+          )}
+
+          {/* Cloud Database Sync Indicator */}
+          {onRefreshCloud && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onRefreshCloud}
+              title="Sincronizar e carregar os envios em tempo real da Nuvem Supabase"
+              style={{
+                background: cloudStatus === 'online' ? 'rgba(16, 185, 129, 0.12)' : cloudStatus === 'syncing' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                color: cloudStatus === 'online' ? '#34D399' : cloudStatus === 'syncing' ? '#FBBF24' : '#F87171',
+                borderColor: cloudStatus === 'online' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)',
+                fontSize: '0.725rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <RefreshCw size={12} className={cloudStatus === 'syncing' ? 'animate-spin' : ''} />
+              <span>{cloudStatus === 'syncing' ? 'Sincronizando...' : 'Supabase Nuvem'}</span>
+            </button>
           )}
 
           {/* POP Oficial Button */}

@@ -7,10 +7,11 @@ import ValidityMonitorDashboard from './components/SpecialistPanel/ValidityMonit
 import DriveSyncView from './components/GoogleDriveSync/DriveSyncView';
 import GoogleLoginModal from './components/Auth/GoogleLoginModal';
 import POPHomologacaoModal from './components/SpecialistPanel/POPHomologacaoModal';
-import { loadCarriers, resetToDefaults, saveCarrier } from './services/storageService';
+import { loadCarriers, resetToDefaults, saveCarrier, saveAllCarriers } from './services/storageService';
 import { syncCarrierToGoogleDrive } from './services/driveSyncService';
 import { calculateDocumentValidity } from './services/validityCalculator';
 import { getStoredUser, saveUserSession, clearUserSession } from './services/authService';
+import { fetchCarriersFromSupabase, subscribeToCarriers, upsertCarrierToSupabase, isSupabaseConfigured } from './services/supabaseService';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -20,6 +21,36 @@ export default function App() {
   const [selectedCarrierId, setSelectedCarrierId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const [isPOPOpen, setIsPOPOpen] = useState(false);
+  const [cloudStatus, setCloudStatus] = useState('connecting'); // 'online' | 'offline' | 'syncing'
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const refreshCarriersFromCloud = async (notify = false) => {
+    setCloudStatus('syncing');
+    try {
+      const remote = await fetchCarriersFromSupabase();
+      if (remote && Array.isArray(remote) && remote.length > 0) {
+        saveAllCarriers(remote);
+        setCarriers(remote);
+        setCloudStatus('online');
+        if (notify) showToast(`✓ ${remote.length} transportador(es) sincronizado(s) da Nuvem Supabase!`);
+      } else {
+        // Se a tabela remota estiver vazia, sincroniza a base local inicial
+        const local = loadCarriers();
+        setCarriers(local);
+        setCloudStatus('online');
+        if (local && local.length > 0) {
+          local.forEach(c => upsertCarrierToSupabase(c));
+        }
+      }
+    } catch (err) {
+      console.warn("Erro ao buscar dados do Supabase:", err);
+      setCloudStatus('offline');
+    }
+  };
 
   useEffect(() => {
     // Check url param ?mode=carrier
@@ -35,12 +66,20 @@ export default function App() {
 
     const loadedCarriers = loadCarriers();
     setCarriers(loadedCarriers);
-  }, []);
 
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
+    // Carrega do Supabase
+    refreshCarriersFromCloud();
+
+    // Inscrição em Tempo Real (Realtime WebSockets)
+    const unsubscribe = subscribeToCarriers((payload) => {
+      refreshCarriersFromCloud();
+      showToast("🔔 Novo envio / atualização recebida em tempo real da Nuvem Supabase!");
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
@@ -149,6 +188,8 @@ export default function App() {
         onLogout={handleLogout}
         onOpenStandalonePortal={() => setAppMode('CARRIER_STANDALONE')}
         onOpenPOP={() => setIsPOPOpen(true)}
+        cloudStatus={cloudStatus}
+        onRefreshCloud={() => refreshCarriersFromCloud(true)}
       />
 
       {/* POP Modal */}

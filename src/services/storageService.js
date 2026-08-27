@@ -1,4 +1,5 @@
 import { INITIAL_CARRIERS } from "./sampleData";
+import { upsertCarrierToSupabase } from "./supabaseService";
 
 const STORAGE_KEY = "LOGSHARE_CARRIERS_DB_V2";
 
@@ -29,7 +30,7 @@ export function saveAllCarriers(carriers) {
 
 export function saveCarrier(newCarrier) {
   const carriers = loadCarriers();
-  const index = carriers.findIndex(c => c.id === newCarrier.id || (c.cnpj && c.cnpj === newCarrier.cnpj));
+  const index = carriers.findIndex(c => c.id === newCarrier.id || (c.cnpj && c.cnpj === newCarrier.cnpj) || (c.protocol && c.protocol === newCarrier.protocol));
   
   let updated;
   if (index >= 0) {
@@ -40,6 +41,14 @@ export function saveCarrier(newCarrier) {
   }
   
   saveAllCarriers(updated);
+
+  // Sincroniza em segundo plano com a nuvem Supabase
+  try {
+    upsertCarrierToSupabase(newCarrier);
+  } catch (cloudErr) {
+    console.warn("Could not save carrier to Supabase cloud:", cloudErr);
+  }
+
   return updated;
 }
 
