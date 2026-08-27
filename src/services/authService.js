@@ -1,42 +1,39 @@
 /**
- * Google SSO & Role-Based Access Control (RBAC) Service for LogShare
- * Manages authenticated specialist session and validates @logshare.com.br corporate accounts
+ * Real Google Workspace SSO & Domain Validation Service for LogShare
+ * Uses Google Identity Services (OAuth 2.0 / JWT) to authenticate real Google accounts
  */
 
-const AUTH_STORAGE_KEY = "LOGSHARE_AUTH_USER_V1";
+import { jwtDecode } from "jwt-decode";
 
-export const LOGSHARE_AUTHORIZED_SPECIALISTS = [
-  {
-    id: "user-1",
-    name: "Carlos Eduardo Silveira",
-    email: "carlos.silveira@logshare.com.br",
-    role: "Especialista em Homologação & Risco",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-    domain: "logshare.com.br"
-  },
-  {
-    id: "user-2",
-    name: "Marina Vasconcelos",
-    email: "marina.vasconcelos@logshare.com.br",
-    role: "Gerente de Compliance & Transportes",
-    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=80",
-    domain: "logshare.com.br"
-  },
-  {
-    id: "user-3",
-    name: "Paulo Ferreira",
-    email: "paulo.ferreira@logshare.com.br",
-    role: "Auditor Líder de Frota & Risco",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
-    domain: "logshare.com.br"
+const AUTH_STORAGE_KEY = "LOGSHARE_AUTH_USER_V2";
+const GOOGLE_CLIENT_ID_KEY = "LOGSHARE_GOOGLE_CLIENT_ID";
+
+// Default or fallback Client ID (Can be configured in .env or via UI)
+export const DEFAULT_GOOGLE_CLIENT_ID = 
+  import.meta.env.VITE_GOOGLE_CLIENT_ID || 
+  localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || 
+  "";
+
+export function getStoredGoogleClientId() {
+  return localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+}
+
+export function saveGoogleClientId(clientId) {
+  if (clientId) {
+    localStorage.setItem(GOOGLE_CLIENT_ID_KEY, clientId.trim());
+  } else {
+    localStorage.removeItem(GOOGLE_CLIENT_ID_KEY);
   }
-];
+}
 
 export function getStoredUser() {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.email) {
+        return parsed;
+      }
     }
   } catch (err) {
     console.warn("Could not read auth state from localStorage", err);
@@ -61,41 +58,52 @@ export function clearUserSession() {
 }
 
 /**
- * Authenticates user via Google Workspace SSO
- * Validates domain @logshare.com.br
+ * Validates and parses the real Google JWT token returned by accounts.google.com
+ * Enforces @logshare.com.br corporate domain validation
  */
-export async function loginWithGoogleSSO(customEmail = null) {
-  // Simulate Google OAuth popup latency (0.6s)
-  await new Promise(resolve => setTimeout(resolve, 600));
+export function handleGoogleCredentialResponse(credentialToken, allowedDomain = "logshare.com.br") {
+  try {
+    if (!credentialToken) {
+      return { success: false, message: "Nenhum token retornado pelo Google." };
+    }
 
-  const emailToUse = (customEmail || "carlos.silveira@logshare.com.br").toLowerCase().trim();
+    const decoded = jwtDecode(credentialToken);
+    const email = (decoded.email || "").toLowerCase().trim();
+    const hostedDomain = decoded.hd || "";
 
-  // Validate corporate domain
-  const isLogshareDomain = emailToUse.endsWith("@logshare.com.br");
+    // Domain validation
+    const isValidDomain = email.endsWith(`@${allowedDomain}`) || hostedDomain === allowedDomain;
 
-  if (!isLogshareDomain) {
+    if (!isValidDomain) {
+      return {
+        success: false,
+        message: `Acesso bloqueado: O e-mail (${email}) não pertence ao domínio corporativo @${allowedDomain}. Faça login com sua conta da LogShare.`
+      };
+    }
+
+    const user = {
+      id: decoded.sub || `google-${Date.now()}`,
+      name: decoded.name || email.split('@')[0],
+      email: email,
+      role: "Especialista em Homologação & Compliance",
+      avatar: decoded.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(decoded.name || email)}&background=0056D2&color=fff`,
+      domain: allowedDomain,
+      googleAuth: true,
+      lastLogin: new Date().toISOString()
+    };
+
+    saveUserSession(user);
+
+    return {
+      success: true,
+      user,
+      message: `Autenticado com sucesso via Google Workspace como ${user.name}`
+    };
+  } catch (err) {
+    console.error("Erro ao decodificar token do Google:", err);
     return {
       success: false,
-      message: `Acesso negado. O e-mail (${emailToUse}) não pertence ao domínio corporativo @logshare.com.br.`
+      message: "Falha na validação do token retornado pelo Google. Tente novamente."
     };
   }
-
-  const existingProfile = LOGSHARE_AUTHORIZED_SPECIALISTS.find(s => s.email.toLowerCase() === emailToUse);
-
-  const user = existingProfile || {
-    id: `user-${Date.now()}`,
-    name: emailToUse.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-    email: emailToUse,
-    role: "Especialista em Homologação LogShare",
-    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(emailToUse)}&background=0056D2&color=fff`,
-    domain: "logshare.com.br"
-  };
-
-  saveUserSession(user);
-
-  return {
-    success: true,
-    user,
-    message: `Autenticado com sucesso via Google Workspace como ${user.name}`
-  };
 }
