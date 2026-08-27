@@ -1,24 +1,11 @@
 import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle2, AlertCircle, Trash2, Calendar, FileCheck, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
+import { UploadCloud, CheckCircle2, AlertCircle, FileText, Sparkles, Trash2, Calendar, ShieldCheck, Check, Filter, AlertTriangle } from 'lucide-react';
 import { scanDocumentWithAI } from '../../services/aiDocumentScanner';
-import { calculateDocumentValidity, formatDateBR } from '../../services/validityCalculator';
-
-export const DOCUMENT_CHECKLIST = [
-  { id: "doc_cnpj", nome: "Cartão CNPJ (Receita Federal)", obrigatorio: true, desc: "Emitido no site da Receita Federal com situação ativa e CNAE de transporte rodoviário." },
-  { id: "doc_rntrc", nome: "Certificado RNTRC / ANTT", obrigatorio: true, desc: "Registro Nacional de Transportadores Rodoviários de Cargas na categoria ETC." },
-  { id: "doc_rctrc", nome: "Apólice de Seguro RCTR-C", obrigatorio: true, desc: "Cópia da apólice vigente e comprovante de quitação da seguradora." },
-  { id: "doc_rcdc", nome: "Apólice de Seguro RC-DC", obrigatorio: true, desc: "Apólice de desaparecimento de carga / roubo com especificação de LMG." },
-  { id: "doc_contrato", nome: "Contrato Social Consolidado", obrigatorio: true, desc: "Última alteração consolidada ou requerimento de empresário individual." },
-  { id: "doc_cnd_federal", nome: "CND Federal / Previdenciária", obrigatorio: true, desc: "Certidão Conjunta Negativa de Tributos Federais e Dívida Ativa da União." },
-  { id: "doc_cndt", nome: "Certidão Negativa de Débitos Trabalhistas (CNDT)", obrigatorio: true, desc: "Emitida pelo TST comprovando inexistência de pendências na Justiça do Trabalho." },
-  { id: "doc_fgts", nome: "Certificado de Regularidade do FGTS (CRF)", obrigatorio: true, desc: "Emitido pela Caixa Econômica Federal comprovando regularidade do FGTS." },
-  { id: "doc_bancario", nome: "Comprovante de Domicílio Bancário", obrigatorio: true, desc: "Extrato, folha de cheque cancelada ou carta do banco em nome da pessoa jurídica." },
-  { id: "doc_pgr", nome: "PGR - Plano de Gerenciamento de Risco", obrigatorio: false, desc: "Se aplicável, manual de procedimentos de segurança emitido pela Gerenciadora de Risco." },
-  { id: "doc_ambiental_mopp", nome: "Licença Ambiental / Certificados MOPP / Bombeiros", obrigatorio: false, desc: "Obrigatório para cargas especiais, licenças de funcionamento ou AVCB." }
-];
+import { calculateDocumentValidity, formatDateBR, ALL_SYSTEM_DOCUMENTS, OFFICIAL_DOCUMENT_CATEGORIES } from '../../services/validityCalculator';
 
 export default function Step4Documentos({ formData, updateFormData }) {
   const docs = formData.documentos || [];
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [scanningDocId, setScanningDocId] = useState(null);
 
   const readFileAsBase64 = (file) => {
@@ -36,10 +23,10 @@ export default function Step4Documentos({ formData, updateFormData }) {
 
     setScanningDocId(docDef.id);
 
-    // 1. Read Base64 for Google Drive sync
+    // 1. Read Base64 for Google Drive auto-sync
     const base64Data = await readFileAsBase64(file);
 
-    // 2. Call Real AI Document Scanner with PDF.js and neural date regex parser
+    // 2. OCR AI Scanning for Dates and Numbers
     const aiResult = await scanDocumentWithAI(file, docDef);
 
     setScanningDocId(null);
@@ -50,13 +37,15 @@ export default function Step4Documentos({ formData, updateFormData }) {
     const newDoc = {
       id: docDef.id,
       nome: docDef.nome,
+      shortName: docDef.shortName,
       obrigatorio: docDef.obrigatorio,
+      categoryId: docDef.categoryId,
       status: isExpired ? "IRREGULAR" : "VALIDO",
       vigencia: aiResult.extractedVigencia || "31/12/2028",
       arquivoNome: file.name,
       arquivoTamanho: `${(file.size / 1024).toFixed(1)} KB`,
       arquivoMime: file.type || "application/pdf",
-      arquivoBase64: base64Data, // Stored for Google Drive auto-upload
+      arquivoBase64: base64Data,
       aiAnalysis: {
         confidence: aiResult.confidence,
         extractedDocType: aiResult.extractedDocType,
@@ -99,164 +88,290 @@ export default function Step4Documentos({ formData, updateFormData }) {
     updateFormData('documentos', updated);
   };
 
+  // Metrics
+  const mandatoryDocs = ALL_SYSTEM_DOCUMENTS.filter(d => d.obrigatorio);
+  const mandatoryUploadedCount = mandatoryDocs.filter(m => docs.some(d => d.id === m.id)).length;
+  const totalUploadedCount = docs.length;
+
+  // Filtered list
+  const filteredDocs = selectedCategory === "ALL" 
+    ? ALL_SYSTEM_DOCUMENTS 
+    : ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId === selectedCategory);
+
   return (
     <div className="animate-fade-in">
       <div className="card-header">
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary-600)', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-            <Sparkles size={14} />
-            <span>LEITURA ÓPTICA POR IA EM TEMPO REAL (PDF.JS & OCR)</span>
-          </div>
           <h2 style={{ fontSize: '1.2rem', color: 'var(--primary-900)' }}>
-            Seção 4 — Checklist Documental & Upload com Detecção de Validade
+            Seção 4 — Checklist Documental & Habilitação Operacional
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-            Ao anexar qualquer arquivo, nosso motor de IA lê o texto e extrai automaticamente a data de validade (ex: <em>"Válido até 21/03/2025"</em>) classificando o status no padrão <strong>DD/MM/AAAA</strong>.
+            Anexe os documentos comprobatórios organizados por categoria. O sistema realiza leitura inteligente de datas e conformidade.
           </p>
         </div>
-        <FileCheck size={28} color="var(--primary-600)" />
+        <FileText size={28} color="var(--primary-600)" />
       </div>
 
+      {/* Progress & Summary Bar */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0A192F 0%, #103265 100%)',
+        color: 'white',
+        padding: '1.25rem 1.5rem',
+        borderRadius: 'var(--radius-lg)',
+        marginBottom: '1.5rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem'
+      }}>
+        <div>
+          <div style={{ fontSize: '0.75rem', color: '#93C5FD', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+            Progresso de Homologação Documental
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px' }}>
+            {mandatoryUploadedCount} de {mandatoryDocs.length} Documentos Obrigatórios Anexados
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{
+            width: '180px',
+            height: '10px',
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: 'var(--radius-full)',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${Math.round((mandatoryUploadedCount / mandatoryDocs.length) * 100)}%`,
+              height: '100%',
+              background: mandatoryUploadedCount === mandatoryDocs.length ? '#10B981' : '#FCD34D',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#FCD34D' }}>
+            {Math.round((mandatoryUploadedCount / mandatoryDocs.length) * 100)}%
+          </span>
+        </div>
+      </div>
+
+      {/* Category Filter Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        <button
+          type="button"
+          className={`btn btn-sm ${selectedCategory === "ALL" ? "btn-primary" : "btn-secondary"}`}
+          onClick={() => setSelectedCategory("ALL")}
+          style={{ fontSize: '0.78rem' }}
+        >
+          <Filter size={13} />
+          <span>Todos ({ALL_SYSTEM_DOCUMENTS.length})</span>
+        </button>
+
+        {OFFICIAL_DOCUMENT_CATEGORIES.map(cat => {
+          const countInCat = ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId === cat.id).length;
+          const uploadedInCat = ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId === cat.id && docs.some(doc => doc.id === d.id)).length;
+          const isSelected = selectedCategory === cat.id;
+
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              className={`btn btn-sm ${isSelected ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setSelectedCategory(cat.id)}
+              style={{
+                fontSize: '0.78rem',
+                borderColor: isSelected ? undefined : cat.badgeColor,
+                color: isSelected ? undefined : 'var(--text-primary)'
+              }}
+            >
+              <span>{cat.shortTitle}</span>
+              <span style={{
+                background: isSelected ? 'rgba(255,255,255,0.25)' : cat.badgeBg,
+                color: isSelected ? 'white' : cat.badgeColor,
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                marginLeft: '4px'
+              }}>
+                {uploadedInCat}/{countInCat}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Documents List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {DOCUMENT_CHECKLIST.map((docDef) => {
+        {filteredDocs.map((docDef) => {
           const uploaded = docs.find(d => d.id === docDef.id);
-          const hasFile = !!uploaded?.arquivoNome;
           const isScanning = scanningDocId === docDef.id;
-          const validity = hasFile ? calculateDocumentValidity(uploaded.vigencia) : null;
+          const validity = uploaded?.vigencia ? calculateDocumentValidity(uploaded.vigencia) : null;
+          const cat = OFFICIAL_DOCUMENT_CATEGORIES.find(c => c.id === docDef.categoryId);
 
           return (
             <div
               key={docDef.id}
+              className="card"
               style={{
-                border: `1.5px solid ${hasFile ? validity?.border || 'var(--status-apta-border)' : 'var(--border-light)'}`,
-                background: hasFile ? validity?.bg || 'var(--status-apta-bg)' : 'var(--bg-card)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1rem 1.25rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-                transition: 'var(--transition-fast)'
+                padding: '1.25rem',
+                border: uploaded 
+                  ? (validity?.key === 'EXPIRED' ? '1.5px solid #FCA5A5' : '1.5px solid #86EFAC') 
+                  : (docDef.obrigatorio ? '1.5px solid #FCA5A5' : '1px solid var(--border-light)'),
+                background: uploaded ? (validity?.key === 'EXPIRED' ? '#FFF5F5' : '#F0FDF4') : 'white',
+                boxShadow: 'var(--shadow-sm)'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                {/* Doc Info */}
-                <div style={{ flex: '1 1 320px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    {hasFile ? (
-                      <span style={{ fontSize: '1.1rem' }}>{validity?.icon || '🟢'}</span>
-                    ) : (
-                      <FileText size={18} color="var(--text-muted)" />
-                    )}
-                    <h4 style={{ fontSize: '0.925rem', color: 'var(--text-primary)' }}>
-                      {docDef.nome}
-                    </h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ flex: '1 1 380px' }}>
+                  {/* Category Pill & Mandatory Badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: '0.675rem',
+                      background: cat?.badgeBg || '#F1F5F9',
+                      color: cat?.badgeColor || '#475569',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontWeight: 700
+                    }}>
+                      {cat?.title}
+                    </span>
+
                     {docDef.obrigatorio ? (
-                      <span style={{ fontSize: '0.65rem', background: '#fee2e2', color: '#991b1b', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
-                        OBRIGATÓRIO
+                      <span style={{ fontSize: '0.675rem', background: '#FEF2F2', color: '#991B1B', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>
+                        🔴 OBRIGATÓRIO
                       </span>
                     ) : (
-                      <span style={{ fontSize: '0.65rem', background: '#f1f5f9', color: '#64748b', padding: '1px 6px', borderRadius: 4 }}>
-                        SE APLICÁVEL
+                      <span style={{ fontSize: '0.675rem', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                        ⚪ CONDICIONAL / SETORIAL
                       </span>
                     )}
                   </div>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    {docDef.desc}
+
+                  <h3 style={{ fontSize: '0.95rem', color: 'var(--primary-900)', margin: '0 0 0.25rem 0' }}>
+                    {docDef.nome}
+                  </h3>
+
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0' }}>
+                    {docDef.hint}
                   </p>
 
-                  {hasFile && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.4rem', fontSize: '0.75rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 600, color: validity?.text || 'var(--text-primary)' }}>
-                        Arquivo: {uploaded.arquivoNome} {uploaded.arquivoTamanho && `(${uploaded.arquivoTamanho})`}
-                      </span>
-                      {uploaded.aiAnalysis && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: 'rgba(0, 86, 210, 0.1)', color: '#0056D2', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
-                          <Sparkles size={11} />
-                          IA Confiança: {uploaded.aiAnalysis.confidence}
-                        </span>
-                      )}
+                  {docDef.condicionalText && !docDef.obrigatorio && (
+                    <div style={{ fontSize: '0.75rem', color: '#B45309', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <AlertTriangle size={12} />
+                      <span>{docDef.condicionalText}</span>
                     </div>
                   )}
-                </div>
 
-                {/* Upload Action & Vigência */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  {hasFile && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <Calendar size={14} color="var(--text-muted)" />
+                  {/* Uploaded File Info & AI OCR */}
+                  {uploaded ? (
+                    <div style={{
+                      background: 'white',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.75rem',
+                      marginTop: '0.5rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <CheckCircle2 size={16} color="#10B981" />
+                          <strong style={{ fontSize: '0.825rem', color: 'var(--primary-900)' }}>
+                            {uploaded.arquivoNome}
+                          </strong>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            ({uploaded.arquivoTamanho})
+                          </span>
+                        </div>
+
+                        {/* Validity Badge */}
+                        {uploaded.vigencia && (
+                          <span style={{
+                            background: validity?.bg,
+                            color: validity?.text,
+                            border: `1px solid ${validity?.border}`,
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontSize: '0.72rem',
+                            fontWeight: 700
+                          }}>
+                            {validity?.icon} {validity?.label} ({formatDateBR(uploaded.vigencia)})
+                          </span>
+                        )}
+                      </div>
+
+                      {/* AI Extraction Notes */}
+                      {uploaded.aiAnalysis?.notes && (
+                        <div style={{ fontSize: '0.75rem', color: '#1E293B', background: '#F8FAFC', padding: '4px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <Sparkles size={12} color="#0056D2" />
+                          <span>{uploaded.aiAnalysis.notes}</span>
+                        </div>
+                      )}
+
+                      {/* Manual Validity Date Editor */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          Data de Vigência / Validade:
+                        </label>
                         <input
                           type="text"
-                          title="Data de vigência / validade extraída pela IA (DD/MM/AAAA)"
                           className="form-input"
-                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', width: '135px', fontWeight: 700, textAlign: 'center' }}
+                          style={{ width: '130px', padding: '2px 8px', fontSize: '0.75rem', height: '28px' }}
+                          placeholder="DD/MM/AAAA"
                           value={uploaded.vigencia || ''}
                           onChange={(e) => handleVigenciaChange(docDef.id, e.target.value)}
                         />
                       </div>
-                      <span style={{ fontSize: '0.725rem', color: validity?.text, fontWeight: 700, textAlign: 'right' }}>
-                        {validity?.formattedLabel}
-                      </span>
                     </div>
-                  )}
+                  ) : null}
+                </div>
 
-                  {isScanning ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary-600)', fontSize: '0.8rem', fontWeight: 600 }}>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Lendo PDF por IA...</span>
-                    </div>
-                  ) : hasFile ? (
+                {/* Upload & Delete Actions */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label
+                    className={`btn btn-sm ${uploaded ? 'btn-secondary' : 'btn-primary'}`}
+                    style={{ cursor: isScanning ? 'wait' : 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                  >
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      style={{ display: 'none' }}
+                      disabled={isScanning}
+                      onChange={(e) => handleFileUpload(docDef, e)}
+                    />
+                    {isScanning ? (
+                      <>
+                        <Sparkles size={14} className="animate-spin" />
+                        <span>Lendo com IA...</span>
+                      </>
+                    ) : uploaded ? (
+                      <>
+                        <UploadCloud size={14} />
+                        <span>Substituir PDF</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud size={14} />
+                        <span>Anexar Documento</span>
+                      </>
+                    )}
+                  </label>
+
+                  {uploaded && (
                     <button
                       type="button"
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleRemoveDoc(docDef.id)}
-                      style={{ color: 'var(--status-nao-apta-solid)' }}
-                      title="Remover arquivo"
+                      style={{ color: '#EF4444', borderColor: '#FCA5A5', padding: '0.35rem 0.5rem' }}
+                      title="Excluir documento"
                     >
                       <Trash2 size={14} />
-                      <span>Remover</span>
                     </button>
-                  ) : (
-                    <label
-                      htmlFor={`upload-${docDef.id}`}
-                      className="btn btn-primary btn-sm"
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <Upload size={14} />
-                      <span>Anexar e Ler com IA</span>
-                      <input
-                        id={`upload-${docDef.id}`}
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        style={{ display: 'none' }}
-                        onChange={(e) => handleFileUpload(docDef, e)}
-                      />
-                    </label>
                   )}
                 </div>
               </div>
-
-              {/* Extra AI Insights Banner */}
-              {hasFile && uploaded.aiAnalysis?.notes && (
-                <div style={{
-                  background: validity?.key === "EXPIRED" ? '#FEE2E2' : 'rgba(255,255,255,0.7)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '0.5rem 0.75rem',
-                  fontSize: '0.75rem',
-                  color: validity?.key === "EXPIRED" ? '#991B1B' : '#334155',
-                  borderLeft: `3px solid ${validity?.color || 'var(--primary-600)'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
-                  {validity?.key === "EXPIRED" && <AlertTriangle size={15} color="#EF4444" style={{ flexShrink: 0 }} />}
-                  <div>
-                    <span style={{ fontWeight: 700 }}>Diagnóstico IA: </span>
-                    {uploaded.aiAnalysis.extractedDocType && `${uploaded.aiAnalysis.extractedDocType} • `}
-                    {uploaded.aiAnalysis.notes}
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}

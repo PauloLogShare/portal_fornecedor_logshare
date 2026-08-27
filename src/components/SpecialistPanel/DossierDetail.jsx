@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, FileText, Shield, Truck, Building2, DollarSign, Calendar, Eye, RefreshCw, Save, Send, Sparkles } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, FileText, Shield, Truck, Building2, DollarSign, Calendar, Eye, RefreshCw, Save, Send, Sparkles, Layers } from 'lucide-react';
 import RiskScoreEngine from './RiskScoreEngine';
 import ParecerGenerator from './ParecerGenerator';
 import { calculateRiskScore, evaluateCarrier, generateExecutiveSummary, generateRequiredActions } from '../../services/riskEngineService';
 import { saveCarrier } from '../../services/storageService';
-import { calculateDocumentValidity } from '../../services/validityCalculator';
+import { calculateDocumentValidity, OFFICIAL_DOCUMENT_CATEGORIES, ALL_SYSTEM_DOCUMENTS, formatDateBR } from '../../services/validityCalculator';
 
 export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdateCarrierList, onSyncDrive }) {
   const carrier = allCarriers.find(c => c.id === carrierId) || allCarriers[0];
@@ -203,85 +203,121 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {docsState.map((doc) => {
-                const validity = calculateDocumentValidity(doc.vigencia);
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {OFFICIAL_DOCUMENT_CATEGORIES.map(cat => {
+                const categoryDocs = docsState.filter(d => {
+                  const masterDef = ALL_SYSTEM_DOCUMENTS.find(m => m.id === d.id);
+                  return d.categoryId === cat.id || masterDef?.categoryId === cat.id;
+                });
+
+                if (categoryDocs.length === 0) return null;
+
                 return (
-                  <div
-                    key={doc.id}
-                    style={{
-                      border: `1.5px solid ${doc.status === 'VALIDO' ? validity.border : doc.status === 'PENDENTE' ? 'var(--status-restricoes-border)' : 'var(--status-nao-apta-border)'}`,
-                      background: doc.status === 'VALIDO' ? validity.bg : doc.status === 'PENDENTE' ? 'var(--status-restricoes-bg)' : 'var(--status-nao-apta-bg)',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '0.85rem 1rem',
+                  <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <span style={{ fontSize: '1rem' }}>{validity.icon}</span>
-                          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                            {doc.nome}
-                          </span>
-                          {doc.obrigatorio && (
-                            <span style={{ fontSize: '0.65rem', background: '#fee2e2', color: '#991b1b', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
-                              EXIGIDO
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2px' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                            Arquivo: {doc.arquivoNome || 'Nenhum anexo'}
-                          </span>
-                          <span style={{ fontSize: '0.725rem', fontWeight: 700, color: validity.text }}>
-                            • {validity.formattedLabel}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Status Toggle Buttons */}
-                      <div style={{ display: 'flex', gap: '0.35rem' }}>
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${doc.status === 'VALIDO' ? 'btn-success' : 'btn-secondary'}`}
-                          onClick={() => handleDocStatusChange(doc.id, 'VALIDO')}
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
-                        >
-                          ✓ Válido
-                        </button>
-
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${doc.status === 'PENDENTE' ? 'btn-warning' : 'btn-secondary'}`}
-                          onClick={() => handleDocStatusChange(doc.id, 'PENDENTE')}
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
-                        >
-                          ⏳ Pendente
-                        </button>
-
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${doc.status === 'IRREGULAR' ? 'btn-danger' : 'btn-secondary'}`}
-                          onClick={() => handleDocStatusChange(doc.id, 'IRREGULAR')}
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
-                        >
-                          ✗ Irregular
-                        </button>
-                      </div>
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '4px 8px',
+                      background: cat.badgeBg,
+                      borderLeft: `4px solid ${cat.badgeColor}`,
+                      borderRadius: '0 4px 4px 0'
+                    }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: cat.badgeColor }}>
+                        {cat.title}
+                      </span>
+                      <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                        ({categoryDocs.length} documentos)
+                      </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', paddingTop: '0.25rem', borderTop: '1px dashed rgba(0,0,0,0.08)' }}>
-                      <span>Vigência informada:</span>
-                      <input
-                        type="text"
-                        className="form-input"
-                        style={{ width: '140px', padding: '0.2rem 0.5rem', fontSize: '0.75rem', fontWeight: 600 }}
-                        value={doc.vigencia || ''}
-                        onChange={(e) => handleDocVigenciaChange(doc.id, e.target.value)}
-                      />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {categoryDocs.map((doc) => {
+                        const validity = calculateDocumentValidity(doc.vigencia);
+                        return (
+                          <div
+                            key={doc.id}
+                            style={{
+                              border: `1.5px solid ${doc.status === 'VALIDO' ? validity.border : doc.status === 'PENDENTE' ? 'var(--status-restricoes-border)' : 'var(--status-nao-apta-border)'}`,
+                              background: doc.status === 'VALIDO' ? validity.bg : doc.status === 'PENDENTE' ? 'var(--status-restricoes-bg)' : 'var(--status-nao-apta-bg)',
+                              borderRadius: 'var(--radius-md)',
+                              padding: '0.75rem 1rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.4rem'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <span style={{ fontSize: '1rem' }}>{validity.icon}</span>
+                                  <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                                    {doc.nome}
+                                  </span>
+                                  {doc.obrigatorio ? (
+                                    <span style={{ fontSize: '0.65rem', background: '#fee2e2', color: '#991b1b', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
+                                      🔴 OBRIGATÓRIO
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: '0.65rem', background: '#F1F5F9', color: '#475569', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
+                                      ⚪ CONDICIONAL
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2px' }}>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                                    Arquivo: {doc.arquivoNome || 'Nenhum anexo'}
+                                  </span>
+                                  <span style={{ fontSize: '0.725rem', fontWeight: 700, color: validity.text }}>
+                                    • {validity.formattedLabel}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Status Toggle Buttons */}
+                              <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                <button
+                                  type="button"
+                                  className={`btn btn-sm ${doc.status === 'VALIDO' ? 'btn-success' : 'btn-secondary'}`}
+                                  onClick={() => handleDocStatusChange(doc.id, 'VALIDO')}
+                                  style={{ padding: '0.2rem 0.55rem', fontSize: '0.725rem' }}
+                                >
+                                  ✓ Válido
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className={`btn btn-sm ${doc.status === 'PENDENTE' ? 'btn-warning' : 'btn-secondary'}`}
+                                  onClick={() => handleDocStatusChange(doc.id, 'PENDENTE')}
+                                  style={{ padding: '0.2rem 0.55rem', fontSize: '0.725rem' }}
+                                >
+                                  ⏳ Pendente
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className={`btn btn-sm ${doc.status === 'IRREGULAR' ? 'btn-danger' : 'btn-secondary'}`}
+                                  onClick={() => handleDocStatusChange(doc.id, 'IRREGULAR')}
+                                  style={{ padding: '0.2rem 0.55rem', fontSize: '0.725rem' }}
+                                >
+                                  ✗ Irregular
+                                </button>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', paddingTop: '0.25rem', borderTop: '1px dashed rgba(0,0,0,0.08)' }}>
+                              <span>Vigência informada:</span>
+                              <input
+                                type="text"
+                                className="form-input"
+                                style={{ width: '130px', padding: '0.15rem 0.4rem', fontSize: '0.75rem', fontWeight: 600, height: '26px' }}
+                                value={doc.vigencia || ''}
+                                onChange={(e) => handleDocVigenciaChange(doc.id, e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );

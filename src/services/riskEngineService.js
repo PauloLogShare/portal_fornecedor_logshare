@@ -31,24 +31,32 @@ export function calculateRiskScore(carrier) {
 
   // 1. Regularidade Documental (0 - 300 pts)
   const docs = carrier.documentos || [];
-  const cnpjDoc = docs.find(d => d.id === "doc_cnpj");
-  const rntrcDoc = docs.find(d => d.id === "doc_rntrc");
-  const rctrcDoc = docs.find(d => d.id === "doc_rctrc");
-  const rcdcDoc = docs.find(d => d.id === "doc_rcdc");
+  const cnpjDoc = docs.find(d => d.id === "doc_cartao_cnpj" || d.id === "doc_cnpj");
+  const rntrcDoc = docs.find(d => d.id === "doc_rntrc_antt" || d.id === "doc_rntrc");
+  const rctrcDoc = docs.find(d => d.id === "doc_apolice_rctrc" || d.id === "doc_rctrc");
+  const rcdcDoc = docs.find(d => d.id === "doc_apolice_rcdc" || d.id === "doc_rcdc");
   const cndDoc = docs.find(d => d.id === "doc_cnd_federal");
-  const cndtDoc = docs.find(d => d.id === "doc_cndt");
-  const fgtsDoc = docs.find(d => d.id === "doc_fgts");
-  const contratoDoc = docs.find(d => d.id === "doc_contrato");
-  const bancarioDoc = docs.find(d => d.id === "doc_bancario");
+  const cndtDoc = docs.find(d => d.id === "doc_cndt_trabalhista" || d.id === "doc_cndt");
+  const fgtsDoc = docs.find(d => d.id === "doc_crf_fgts" || d.id === "doc_fgts");
+  const contratoDoc = docs.find(d => d.id === "doc_contrato_social" || d.id === "doc_contrato");
+  const bancarioDoc = docs.find(d => d.id === "doc_dados_bancarios" || d.id === "doc_bancario");
+  const compSeguroDoc = docs.find(d => d.id === "doc_comprovante_pagamento_seguro");
+  const pgrDoc = docs.find(d => d.id === "doc_pgr_risco" || d.id === "doc_pgr");
+  const frotaDoc = docs.find(d => d.id === "doc_relacao_frota_crlv");
+  const cnhDoc = docs.find(d => d.id === "doc_cnh_toxicologico");
 
-  if (cnpjDoc?.status === "VALIDO") documental += 40;
-  if (rntrcDoc?.status === "VALIDO") documental += 70;
-  if (rctrcDoc?.status === "VALIDO") documental += 50;
-  if (rcdcDoc?.status === "VALIDO") documental += 50;
-  if (cndDoc?.status === "VALIDO") documental += 30;
-  if (cndtDoc?.status === "VALIDO") documental += 25;
-  if (fgtsDoc?.status === "VALIDO") documental += 25;
+  if (cnpjDoc?.status === "VALIDO") documental += 35;
+  if (rntrcDoc?.status === "VALIDO") documental += 50;
+  if (rctrcDoc?.status === "VALIDO") documental += 40;
+  if (rcdcDoc?.status === "VALIDO") documental += 40;
+  if (compSeguroDoc?.status === "VALIDO") documental += 25;
+  if (pgrDoc?.status === "VALIDO") documental += 25;
+  if (cndDoc?.status === "VALIDO") documental += 20;
+  if (cndtDoc?.status === "VALIDO") documental += 20;
+  if (fgtsDoc?.status === "VALIDO") documental += 15;
   if (contratoDoc?.status === "VALIDO") documental += 10;
+  if (frotaDoc?.status === "VALIDO") documental += 10;
+  if (cnhDoc?.status === "VALIDO") documental += 10;
 
   // 2. Saúde Financeira & Tempo de Atividade (0 - 300 pts)
   if (carrier.aberturaCNPJ) {
@@ -133,10 +141,10 @@ export function evaluateCarrier(carrier) {
   const { scoreTotal, breakdown } = calculateRiskScore(carrier);
   const docs = carrier.documentos || [];
   
-  const rntrcDoc = docs.find(d => d.id === "doc_rntrc");
-  const rctrcDoc = docs.find(d => d.id === "doc_rctrc");
-  const rcdcDoc = docs.find(d => d.id === "doc_rcdc");
-  const cnpjDoc = docs.find(d => d.id === "doc_cnpj");
+  const rntrcDoc = docs.find(d => d.id === "doc_rntrc_antt" || d.id === "doc_rntrc");
+  const rctrcDoc = docs.find(d => d.id === "doc_apolice_rctrc" || d.id === "doc_rctrc");
+  const rcdcDoc = docs.find(d => d.id === "doc_apolice_rcdc" || d.id === "doc_rcdc");
+  const cnpjDoc = docs.find(d => d.id === "doc_cartao_cnpj" || d.id === "doc_cnpj");
 
   // Critical deal breakers
   const hasCriticalFailure = 

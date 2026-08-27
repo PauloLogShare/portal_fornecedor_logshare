@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertCircle, AlertTriangle, CheckCircle2, Clock, Calendar, Mail, MessageSquare, Send, Search, Filter, ShieldAlert, FileText, Check, Copy, LayoutGrid, Table, Eye, Layers } from 'lucide-react';
-import { calculateDocumentValidity, TRAFFIC_LIGHT_COLORS, getCarriersValidityMetrics, ALL_SYSTEM_DOCUMENTS, formatDateBR } from '../../services/validityCalculator';
+import { calculateDocumentValidity, TRAFFIC_LIGHT_COLORS, getCarriersValidityMetrics, ALL_SYSTEM_DOCUMENTS, OFFICIAL_DOCUMENT_CATEGORIES, formatDateBR } from '../../services/validityCalculator';
 
 export default function ValidityMonitorDashboard({ carriers, onSelectCarrier }) {
   const [filterSeverity, setFilterSeverity] = useState('ALL'); // 'ALL' | 'EXPIRED' | 'EXPIRING_SOON' | 'VALID'
@@ -69,7 +69,7 @@ export default function ValidityMonitorDashboard({ carriers, onSelectCarrier }) 
   // Filter columns based on category tab
   const visibleColumns = ALL_SYSTEM_DOCUMENTS.filter(docDef => {
     if (selectedCategory === 'ALL') return true;
-    return docDef.category === selectedCategory;
+    return docDef.categoryId === selectedCategory;
   });
 
   const handleOpenAlertModal = (carrier) => {
@@ -284,15 +284,17 @@ export default function ValidityMonitorDashboard({ carriers, onSelectCarrier }) 
         {viewMode === 'table' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Layers size={14} /> Agrupar Documentos:
+              <Layers size={14} /> Agrupar Colunas da Matriz:
             </span>
-            {[
-              { id: 'ALL', label: '🌟 Todos os 11 Documentos' },
-              { id: 'seguros', label: '🛡️ Seguros & PGR' },
-              { id: 'fiscal', label: '🏛️ Fiscal & Trabalhista' },
-              { id: 'regulatorio', label: '🚛 RNTRC & Licenças' },
-              { id: 'societario', label: '🏢 Societário & Bancário' }
-            ].map(cat => (
+            <button
+              type="button"
+              className={`btn btn-sm ${selectedCategory === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setSelectedCategory('ALL')}
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem', borderRadius: 'var(--radius-full)' }}
+            >
+              🌟 Todos os {ALL_SYSTEM_DOCUMENTS.length} Documentos
+            </button>
+            {OFFICIAL_DOCUMENT_CATEGORIES.map(cat => (
               <button
                 key={cat.id}
                 type="button"
@@ -300,7 +302,7 @@ export default function ValidityMonitorDashboard({ carriers, onSelectCarrier }) 
                 onClick={() => setSelectedCategory(cat.id)}
                 style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem', borderRadius: 'var(--radius-full)' }}
               >
-                {cat.label}
+                {cat.title}
               </button>
             ))}
           </div>
