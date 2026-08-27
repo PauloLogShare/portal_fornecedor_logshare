@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, FileCheck, AlertTriangle, DollarSign, UploadCloud, FileText, CheckCircle2, AlertCircle, Eye, Trash2, Calendar, Sparkles } from 'lucide-react';
+import { ShieldCheck, FileCheck, AlertTriangle, DollarSign, UploadCloud, FileText, CheckCircle2, AlertCircle, Eye, Trash2, Calendar, Sparkles, HelpCircle, Check, Info } from 'lucide-react';
 import { scanDocumentWithAI } from '../../services/aiDocumentScanner';
 import { formatDateBR, calculateDocumentValidity, ALL_SYSTEM_DOCUMENTS } from '../../services/validityCalculator';
 
@@ -25,10 +25,11 @@ const SEGURADORAS_COMUNS = [
   "Bradesco Seguros",
   "Fairfax Brasil (FF Seguros)",
   "Zurich Seguros",
+  "Apólice Estipulada via LogShare",
   "Outra Companhia Seguradora"
 ];
 
-// Documentos da Categoria 4 (Seguros e Gerenciamento de Risco)
+// Documentos da Categoria 4 (Seguros Requeridos e Gerenciamento de Risco)
 const SEGUROS_DOC_DEFS = ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId === "cat_seguros_pgr");
 
 export default function Step3SegurosRisco({ formData, updateFormData }) {
@@ -36,12 +37,31 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
 
   const gr = formData.gestaoRisco || {};
   const docs = formData.documentos || [];
+  const isEstipuladoLogShare = gr.modeloSeguro === 'LOGSHARE_ESTIPULADO';
 
   const handleNestedChange = (parent, field, value) => {
     updateFormData(parent, {
       ...formData[parent],
       [field]: value
     });
+  };
+
+  const handleModeloSeguroChange = (modelo) => {
+    if (modelo === 'LOGSHARE_ESTIPULADO') {
+      updateFormData('gestaoRisco', {
+        ...formData.gestaoRisco,
+        modeloSeguro: 'LOGSHARE_ESTIPULADO',
+        estipuladoLogShare: true,
+        seguradora: gr.seguradora || "Apólice Mestre LogShare (Estipulada)",
+        lmg: gr.lmg || 1000000
+      });
+    } else {
+      updateFormData('gestaoRisco', {
+        ...formData.gestaoRisco,
+        modeloSeguro: 'PROPRIA_TRANSPORTADOR',
+        estipuladoLogShare: false
+      });
+    }
   };
 
   const readFileAsBase64 = (file) => {
@@ -74,7 +94,8 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
       id: docDef.id,
       nome: docDef.nome,
       shortName: docDef.shortName,
-      obrigatorio: docDef.obrigatorio,
+      obrigatorio: false,
+      requeridoLogShare: true,
       categoryId: "cat_seguros_pgr",
       status: isExpired ? "IRREGULAR" : "VALIDO",
       vigencia: aiResult.extractedVigencia || "31/12/2028",
@@ -103,7 +124,6 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
 
     updateFormData('documentos', updatedDocs);
 
-    // Auto-update policy fields in gestaoRisco if scanned from RCTR-C / RC-DC
     if (docDef.id === "doc_apolice_rctrc" && aiResult.extractedVigencia) {
       handleNestedChange('gestaoRisco', 'vigenciaApolice', aiResult.extractedVigencia);
     }
@@ -120,42 +140,106 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
       <div className="card-header">
         <div>
           <h2 style={{ fontSize: '1.2rem', color: 'var(--primary-900)' }}>
-            Seção 3 — Gestão de Risco, Apólices de Seguro & PGR
+            Seção 3 — Gestão de Risco & Documentos Requeridos de Seguro (ou Estipulação LogShare)
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-            Informe os dados de cobertura securitária e anexe as apólices vigentes (RCTR-C / RC-DC), comprovantes e o PGR.
+            Informe o modelo de cobertura securitária das viagens e os dados de gerenciamento de risco e PGR.
           </p>
         </div>
         <ShieldCheck size={28} color="var(--primary-600)" />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-        {/* Banner Informativo de Conformidade */}
+        {/* Banner Informativo de Responsabilidade do Seguro */}
         <div style={{
-          background: '#FEF2F2',
-          borderLeft: '4px solid #EF4444',
-          padding: '1rem',
+          background: '#EFF6FF',
+          borderLeft: '4px solid #0056D2',
+          padding: '1rem 1.25rem',
           borderRadius: '0 var(--radius-md) var(--radius-md) 0',
           display: 'flex',
           gap: '0.75rem',
           alignItems: 'flex-start'
         }}>
-          <AlertTriangle size={20} color="#EF4444" style={{ flexShrink: 0, marginTop: 2 }} />
-          <div style={{ fontSize: '0.825rem', color: '#991B1B', lineHeight: 1.4 }}>
-            <strong>Requisito Obrigatório LogShare:</strong> Todo transportador parceiro deve possuir apólices ativas de <strong>RCTR-C (Acidentes)</strong> e <strong>RC-DC (Roubo/Desaparecimento de Carga)</strong> com quitação em dia e Limite Máximo de Garantia (LMG) adequado, além de homologação em Gerenciadora de Risco com PGR ativo.
+          <Info size={22} color="#0056D2" style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ fontSize: '0.825rem', color: '#1E3A8A', lineHeight: 1.5 }}>
+            <strong>Diretriz Operacional LogShare:</strong> A responsabilidade das apólices de seguro (RCTR-C e RC-DC) é gerenciada em grande parte <strong>diretamente pela LogShare através de apólice mestre estipulada</strong> para as cargas transportadas. Caso a transportadora possua apólices próprias, elas devem ser anexadas para fins de registro cadastral e limite de garantia (LMG).
           </div>
         </div>
 
-        {/* 3.1 Coberturas de Seguro de Carga */}
+        {/* 3.1 Modelo de Cobertura Securitária */}
         <div className="card" style={{ background: 'var(--bg-subtle)', padding: '1.25rem' }}>
           <h3 style={{ fontSize: '0.95rem', color: 'var(--primary-900)', marginBottom: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            3.1 Coberturas & Informações das Apólices
+            3.1 Modelo de Cobertura Securitária das Operações
           </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+            {/* Opção 1: Apólice Própria */}
+            <div
+              onClick={() => handleModeloSeguroChange('PROPRIA_TRANSPORTADOR')}
+              style={{
+                border: `2px solid ${!isEstipuladoLogShare ? '#0056D2' : 'var(--border-light)'}`,
+                background: !isEstipuladoLogShare ? '#F0F7FF' : 'white',
+                borderRadius: 'var(--radius-md)',
+                padding: '1rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="modeloSeguro"
+                  checked={!isEstipuladoLogShare}
+                  onChange={() => handleModeloSeguroChange('PROPRIA_TRANSPORTADOR')}
+                  style={{ marginTop: '3px', accentColor: '#0056D2' }}
+                />
+                <div>
+                  <strong style={{ fontSize: '0.875rem', color: 'var(--primary-900)', display: 'block' }}>
+                    1. Apólices Próprias da Transportadora
+                  </strong>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
+                    A transportadora possui apólices ativas de RCTR-C e RC-DC com seguradora parceira.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            {/* Opção 2: Estipulação LogShare */}
+            <div
+              onClick={() => handleModeloSeguroChange('LOGSHARE_ESTIPULADO')}
+              style={{
+                border: `2px solid ${isEstipuladoLogShare ? '#10B981' : 'var(--border-light)'}`,
+                background: isEstipuladoLogShare ? '#F0FDF4' : 'white',
+                borderRadius: 'var(--radius-md)',
+                padding: '1rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="modeloSeguro"
+                  checked={isEstipuladoLogShare}
+                  onChange={() => handleModeloSeguroChange('LOGSHARE_ESTIPULADO')}
+                  style={{ marginTop: '3px', accentColor: '#10B981' }}
+                />
+                <div>
+                  <strong style={{ fontSize: '0.875rem', color: '#065F46', display: 'block' }}>
+                    2. Cobertura Estipulada via LogShare (Recomendado)
+                  </strong>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
+                    Operação averbada diretamente na Apólice Mestre LogShare por viagem.
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
 
           <div className="form-grid-2">
             <div className="form-group">
               <label className="form-label" htmlFor="seguradora">
-                Companhia Seguradora <span className="required">*</span>
+                Companhia Seguradora {isEstipuladoLogShare ? "(Estipulada LogShare)" : ""} <span className="required">*</span>
               </label>
               <select
                 id="seguradora"
@@ -173,7 +257,7 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
 
             <div className="form-group">
               <label className="form-label" htmlFor="lmg">
-                Limite Máximo de Garantia (LMG por Embarque em R$) <span className="required">*</span>
+                Limite Máximo de Garantia (LMG por Viagem em R$) <span className="required">*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
@@ -192,57 +276,56 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
                 />
               </div>
               <span className="form-hint">
-                Valor máximo de mercadoria coberto por viagem/veículo
+                Valor estimado ou teto de cobertura por veículo
               </span>
             </div>
           </div>
 
-          <div className="form-grid-3" style={{ marginTop: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="apoliceRCTR_C">
-                Número da Apólice RCTR-C (Acidentes) <span className="required">*</span>
-              </label>
-              <input
-                id="apoliceRCTR_C"
-                type="text"
-                className="form-input"
-                placeholder="Ex: 01.077.982.0001-44"
-                value={gr.apoliceRCTR_C || ''}
-                onChange={(e) => handleNestedChange('gestaoRisco', 'apoliceRCTR_C', e.target.value)}
-                required
-              />
-            </div>
+          {!isEstipuladoLogShare && (
+            <div className="form-grid-3" style={{ marginTop: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="apoliceRCTR_C">
+                  Número da Apólice RCTR-C (Acidentes)
+                </label>
+                <input
+                  id="apoliceRCTR_C"
+                  type="text"
+                  className="form-input"
+                  placeholder="Ex: 01.077.982.0001-44"
+                  value={gr.apoliceRCTR_C || ''}
+                  onChange={(e) => handleNestedChange('gestaoRisco', 'apoliceRCTR_C', e.target.value)}
+                />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="apoliceRC_DC">
-                Número da Apólice RC-DC (Roubo/Desvio) <span className="required">*</span>
-              </label>
-              <input
-                id="apoliceRC_DC"
-                type="text"
-                className="form-input"
-                placeholder="Ex: 01.077.982.0002-55"
-                value={gr.apoliceRC_DC || ''}
-                onChange={(e) => handleNestedChange('gestaoRisco', 'apoliceRC_DC', e.target.value)}
-                required
-              />
-            </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="apoliceRC_DC">
+                  Número da Apólice RC-DC (Roubo/Desvio)
+                </label>
+                <input
+                  id="apoliceRC_DC"
+                  type="text"
+                  className="form-input"
+                  placeholder="Ex: 01.077.982.0002-55"
+                  value={gr.apoliceRC_DC || ''}
+                  onChange={(e) => handleNestedChange('gestaoRisco', 'apoliceRC_DC', e.target.value)}
+                />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="vigenciaApolice">
-                Data de Vencimento da Apólice <span className="required">*</span>
-              </label>
-              <input
-                id="vigenciaApolice"
-                type="text"
-                className="form-input"
-                placeholder="DD/MM/AAAA"
-                value={gr.vigenciaApolice || ''}
-                onChange={(e) => handleNestedChange('gestaoRisco', 'vigenciaApolice', e.target.value)}
-                required
-              />
+              <div className="form-group">
+                <label className="form-label" htmlFor="vigenciaApolice">
+                  Data de Vencimento da Apólice
+                </label>
+                <input
+                  id="vigenciaApolice"
+                  type="text"
+                  className="form-input"
+                  placeholder="DD/MM/AAAA"
+                  value={gr.vigenciaApolice || ''}
+                  onChange={(e) => handleNestedChange('gestaoRisco', 'vigenciaApolice', e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* 3.2 Gerenciadora de Risco & PGR */}
@@ -284,7 +367,7 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
                     onChange={() => handleNestedChange('gestaoRisco', 'temPGR', true)}
                     style={{ accentColor: 'var(--primary-600)' }}
                   />
-                  <span>Sim, possuímos PGR ativo</span>
+                  <span>Sim, possuímos PGR formalizado</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -295,27 +378,29 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
                     onChange={() => handleNestedChange('gestaoRisco', 'temPGR', false)}
                     style={{ accentColor: 'var(--primary-600)' }}
                   />
-                  <span>Não possuímos PGR</span>
+                  <span>Não possuímos PGR próprio (Adotará PGR LogShare)</span>
                 </label>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 3.3 Upload de Documentos de Seguro e PGR (Categoria 4 Oficial) */}
+        {/* 3.3 Upload de Documentos Requeridos de Seguro e PGR */}
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div>
               <h3 style={{ fontSize: '1rem', color: 'var(--primary-900)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FileCheck size={18} color="#E53935" />
-                <span>3.3 Documentos Comprobatórios de Seguro & Gerenciamento de Risco</span>
+                <FileCheck size={18} color="#0056D2" />
+                <span>3.3 Documentos Requeridos de Seguro & PGR</span>
               </h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Anexe os arquivos digitais (PDF ou imagem). Os documentos anexados aqui são salvos e sincronizados automaticamente com o dossiê.
+                {isEstipuladoLogShare
+                  ? "Como a operação será coberta pela Apólice Mestre LogShare, o envio de apólices próprias é opcional/requerido para histórico. O PGR é requerido."
+                  : "Anexe os arquivos digitais de suas apólices, quitação e PGR. Leitura OCR automática ativa."}
               </p>
             </div>
-            <span style={{ fontSize: '0.725rem', background: '#FEF2F2', color: '#B91C1C', padding: '3px 10px', borderRadius: 4, fontWeight: 700 }}>
-              4 Documentos Obrigatórios
+            <span style={{ fontSize: '0.725rem', background: '#F0F9FF', color: '#0369A1', padding: '3px 10px', borderRadius: 4, fontWeight: 700 }}>
+              🔵 DOCUMENTOS REQUERIDOS
             </span>
           </div>
 
@@ -331,7 +416,7 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
                   className="card"
                   style={{
                     padding: '1rem 1.25rem',
-                    border: uploaded ? '1.5px solid #86EFAC' : docDef.obrigatorio ? '1.5px solid #FCA5A5' : '1px solid var(--border-light)',
+                    border: uploaded ? '1.5px solid #86EFAC' : '1px solid var(--border-light)',
                     background: uploaded ? '#F0FDF4' : 'white',
                     transition: 'all 0.2s ease'
                   }}
@@ -342,13 +427,13 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
                         <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--primary-900)' }}>
                           {docDef.nome}
                         </span>
-                        {docDef.obrigatorio ? (
+                        {docDef.id === 'doc_pgr_risco' ? (
                           <span style={{ fontSize: '0.675rem', background: '#FEF2F2', color: '#991B1B', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>
                             🔴 OBRIGATÓRIO
                           </span>
                         ) : (
-                          <span style={{ fontSize: '0.675rem', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
-                            ⚪ RECOMENDADO
+                          <span style={{ fontSize: '0.675rem', background: '#F0F9FF', color: '#0369A1', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                            🔵 REQUERIDO (OU ESTIPULAÇÃO LOGSHARE)
                           </span>
                         )}
                       </div>
@@ -396,7 +481,7 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
                         {isScanning ? (
                           <>
                             <Sparkles size={14} className="animate-spin" />
-                            <span>Analisando com IA...</span>
+                            <span>Lendo com IA...</span>
                           </>
                         ) : uploaded ? (
                           <>

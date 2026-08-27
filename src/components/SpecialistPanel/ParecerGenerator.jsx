@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileCheck, Printer, Copy, Check, Cloud, AlertCircle, ShieldAlert, Sparkles, Send } from 'lucide-react';
 import { STANDARD_RESTRICTIONS, RISK_LEVELS } from '../../services/riskEngineService';
 import { formatDateBR } from '../../services/validityCalculator';
+import { evaluateComplianceStandards } from '../../services/complianceStandardsService';
 import LogShareLogo from '../UI/LogShareLogo';
 
 export default function ParecerGenerator({
@@ -463,10 +464,38 @@ LogShare Tecnologia em Logística & Compliance de Transportes
           </table>
         </div>
 
-        {/* 4. Condicionantes / Restrições */}
+        {/* 4. Aderência às Normas e Requisitos Setoriais (RDC 48, ISO 9001, ISO 22716, Grupo Boticário) */}
+        {(() => {
+          const compliance = evaluateComplianceStandards(carrier);
+          return (
+            <div style={{ marginBottom: '1.5rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                <h3 style={{ fontSize: '0.925rem', color: '#0A192F', textTransform: 'uppercase', margin: 0, fontWeight: 700 }}>
+                  4. Conformidade Normativa & Qualidade (RDC 48 • ISO 9001 • ISO 22716 • Grupo Boticário)
+                </h3>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: compliance.overallPercentage >= 70 ? '#059669' : '#D97706', background: compliance.overallPercentage >= 70 ? '#DCFCE7' : '#FEF3C7', padding: '2px 8px', borderRadius: 4 }}>
+                  Índice de Aderência: {compliance.overallPercentage}%
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem', fontSize: '0.78rem' }}>
+                {compliance.pillars.map(p => (
+                  <div key={p.id} style={{ background: 'white', padding: '6px 8px', border: '1px solid #CBD5E1', borderRadius: '4px' }}>
+                    <div style={{ fontWeight: 700, color: '#1E293B' }}>{p.name}</div>
+                    <div style={{ color: '#64748B', fontSize: '0.7rem' }}>{p.normas}</div>
+                    <div style={{ color: p.status === 'CONFORME' ? '#059669' : '#D97706', fontWeight: 600, marginTop: '2px' }}>
+                      Status: {p.status.replace('_', ' ')} ({p.score} pts)
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* 5. Condicionantes / Restrições */}
         <div style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ fontSize: '0.95rem', color: '#0A192F', textTransform: 'uppercase', borderBottom: '1.5px solid #CBD5E1', paddingBottom: '0.3rem', marginBottom: '0.75rem' }}>
-            4. Condicionantes & Restrições Operacionais
+            5. Condicionantes & Restrições Operacionais
           </h3>
           {(parecerData.restricoesOperacionais || []).length > 0 ? (
             <ul style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#334155' }}>

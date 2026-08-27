@@ -45,11 +45,19 @@ export function calculateRiskScore(carrier) {
   const frotaDoc = docs.find(d => d.id === "doc_relacao_frota_crlv");
   const cnhDoc = docs.find(d => d.id === "doc_cnh_toxicologico");
 
+  const isLogShareInsurance = carrier.gestaoRisco?.estipuladoLogShare || carrier.gestaoRisco?.modeloSeguro === 'LOGSHARE_ESTIPULADO';
+
   if (cnpjDoc?.status === "VALIDO") documental += 35;
   if (rntrcDoc?.status === "VALIDO") documental += 50;
-  if (rctrcDoc?.status === "VALIDO") documental += 40;
-  if (rcdcDoc?.status === "VALIDO") documental += 40;
-  if (compSeguroDoc?.status === "VALIDO") documental += 25;
+  
+  if (isLogShareInsurance) {
+    documental += 80; // Full insurance points covered by LogShare Master Policy
+  } else {
+    if (rctrcDoc?.status === "VALIDO") documental += 40;
+    if (rcdcDoc?.status === "VALIDO") documental += 40;
+  }
+
+  if (compSeguroDoc?.status === "VALIDO" || isLogShareInsurance) documental += 25;
   if (pgrDoc?.status === "VALIDO") documental += 25;
   if (cndDoc?.status === "VALIDO") documental += 20;
   if (cndtDoc?.status === "VALIDO") documental += 20;
@@ -146,13 +154,13 @@ export function evaluateCarrier(carrier) {
   const rcdcDoc = docs.find(d => d.id === "doc_apolice_rcdc" || d.id === "doc_rcdc");
   const cnpjDoc = docs.find(d => d.id === "doc_cartao_cnpj" || d.id === "doc_cnpj");
 
-  // Critical deal breakers
+  const isLogShareInsurance = carrier.gestaoRisco?.estipuladoLogShare || carrier.gestaoRisco?.modeloSeguro === 'LOGSHARE_ESTIPULADO';
+
+  // Critical deal breakers (Only RNTRC and CNPJ are mandatory absolute dealbreakers; insurance is covered by LogShare if estipulado)
   const hasCriticalFailure = 
     rntrcDoc?.status === "IRREGULAR" || 
-    rctrcDoc?.status === "IRREGULAR" || 
-    rcdcDoc?.status === "IRREGULAR" || 
     cnpjDoc?.status === "IRREGULAR" ||
-    (carrier.gestaoRisco?.lmg === 0 && !rctrcDoc);
+    (!isLogShareInsurance && (rctrcDoc?.status === "IRREGULAR" || rcdcDoc?.status === "IRREGULAR"));
 
   let suggestedStatus = "APTA";
   let riskLevel = RISK_LEVELS.BAIXO;

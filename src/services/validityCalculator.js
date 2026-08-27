@@ -40,10 +40,10 @@ export const OFFICIAL_DOCUMENT_CATEGORIES = [
     id: "cat_seguros_pgr",
     number: 4,
     title: "4. SEGUROS E GERENCIAMENTO DE RISCO",
-    shortTitle: "Seguros & PGR",
-    description: "Apólices obrigatórias RCTR-C / RC-DC, comprovantes de quitação e plano PGR.",
-    badgeColor: "#E53935",
-    badgeBg: "#FEF2F2"
+    shortTitle: "Seguros Requeridos & PGR",
+    description: "Apólices requeridas de RCTR-C / RC-DC (ou operação sob apólice estipulada LogShare), quitação e PGR.",
+    badgeColor: "#0284C7",
+    badgeBg: "#F0F9FF"
   },
   {
     id: "cat_frota_motoristas",
@@ -165,7 +165,7 @@ export const ALL_SYSTEM_DOCUMENTS = [
   },
 
   // =========================================================================
-  // 3. ANVISA E VIGILÂNCIA SANITÁRIA
+  // 3. ANVISA E VIGILÂNCIA SANITÁRIA (RDC 48 / ISO 22716 / EFfCI)
   // =========================================================================
   {
     id: "doc_afe_anvisa",
@@ -173,7 +173,7 @@ export const ALL_SYSTEM_DOCUMENTS = [
     nome: "AFE – Autorização de Funcionamento (ANVISA) para transporte de medicamentos, cosméticos, saneantes e/ou alimentos",
     shortName: "AFE ANVISA",
     obrigatorio: false,
-    condicionalText: "Obrigatório para medicamentos, cosméticos, saneantes ou alimentos",
+    condicionalText: "Obrigatório para cosméticos, medicamentos, saneantes ou alimentos (RDC 48/2013)",
     hint: "Publicação no Diário Oficial da União da Autorização de Funcionamento da ANVISA."
   },
   {
@@ -182,7 +182,7 @@ export const ALL_SYSTEM_DOCUMENTS = [
     nome: "AE – Autorização Especial (ANVISA) para produtos controlados (Portaria 344/98)",
     shortName: "AE ANVISA (Controlados 344/98)",
     obrigatorio: false,
-    condicionalText: "Obrigatório para medicamentos controlados (Portaria 344/98)",
+    condicionalText: "Obrigatório para medicamentos e insumos controlados (Portaria 344/98)",
     hint: "Autorização Especial emitida pela ANVISA para medicamentos e substâncias controladas."
   },
   {
@@ -191,7 +191,7 @@ export const ALL_SYSTEM_DOCUMENTS = [
     nome: "Licença Sanitária Estadual/Municipal vigente",
     shortName: "Licença Sanitária (VISA)",
     obrigatorio: false,
-    condicionalText: "Obrigatório para operações sob vigilância sanitária",
+    condicionalText: "Obrigatório para operações sob vigilância sanitária municipal/estadual",
     hint: "Alvará / Licença Sanitária emitida pelo órgão municipal ou estadual de vigilância sanitária."
   },
   {
@@ -200,7 +200,7 @@ export const ALL_SYSTEM_DOCUMENTS = [
     nome: "Certificado de Responsabilidade Técnica (responsável técnico habilitado)",
     shortName: "Certificado CRT / CRF / CRQ",
     obrigatorio: false,
-    condicionalText: "Obrigatório sob regime de Farmácia/Química com Farmacêutico ou Químico",
+    condicionalText: "Obrigatório sob regime com Farmacêutico ou Químico Responsável",
     hint: "Certidão de Regularidade Técnica emitida pelo conselho de classe (CRF/CRQ)."
   },
   {
@@ -209,35 +209,41 @@ export const ALL_SYSTEM_DOCUMENTS = [
     nome: "POPs de Boas Práticas de Transporte e Armazenagem (limpeza, controle de temperatura, rastreabilidade)",
     shortName: "POPs Boas Práticas / Qualidade",
     obrigatorio: false,
-    condicionalText: "Recomendado para cadeia fria, farmacêutica e produtos sensíveis",
-    hint: "Procedimentos Operacionais Padrão assinados pelo Responsável Técnico."
+    condicionalText: "Exigência RDC 48/2013 Item 3.3.5 & Grupo Boticário para cosméticos e higiene",
+    hint: "Procedimentos Operacionais Padrão de limpeza de baús, temperatura e prevenção de contaminação."
   },
 
   // =========================================================================
-  // 4. SEGUROS E GERENCIAMENTO DE RISCO
+  // 4. SEGUROS E GERENCIAMENTO DE RISCO (REQUERIDOS / ESTIPULAÇÃO LOGSHARE)
   // =========================================================================
   {
     id: "doc_apolice_rctrc",
     categoryId: "cat_seguros_pgr",
     nome: "Apólice RCTR-C vigente (Responsabilidade Civil do Transportador Rodoviário – Carga)",
     shortName: "Apólice RCTR-C (Acidente)",
-    obrigatorio: true,
-    hint: "Apólice obrigatória por lei para cobertura de acidentes rodoviários, colisão e tombamento."
+    obrigatorio: false,
+    requeridoLogShare: true,
+    condicionalText: "Requerido se apólice própria; dispensado se coberto por Apólice Estipulada LogShare",
+    hint: "Apólice para cobertura de acidentes rodoviários, colisão e tombamento."
   },
   {
     id: "doc_apolice_rcdc",
     categoryId: "cat_seguros_pgr",
     nome: "Apólice RC-DC vigente (Desaparecimento de Carga)",
     shortName: "Apólice RC-DC (Roubo/Desvio)",
-    obrigatorio: true,
-    hint: "Apólice obrigatória para cobertura de roubo, furto qualificado e desaparecimento de carga."
+    obrigatorio: false,
+    requeridoLogShare: true,
+    condicionalText: "Requerido se apólice própria; dispensado se coberto por Apólice Estipulada LogShare",
+    hint: "Apólice para cobertura de roubo, furto qualificado e desaparecimento de carga."
   },
   {
     id: "doc_comprovante_pagamento_seguro",
     categoryId: "cat_seguros_pgr",
     nome: "Comprovante de pagamento das apólices (última parcela)",
     shortName: "Comprovante Quitação Seguro",
-    obrigatorio: true,
+    obrigatorio: false,
+    requeridoLogShare: true,
+    condicionalText: "Requerido caso possua apólice própria para comprovação de quitação",
     hint: "Comprovante bancário de quitação da última parcela/fatura emitida pela seguradora."
   },
   {
@@ -259,7 +265,7 @@ export const ALL_SYSTEM_DOCUMENTS = [
   },
 
   // =========================================================================
-  // 5. FROTA E MOTORISTAS
+  // 5. FROTA E MOTORISTAS (SSOMA / NR-01 / LEI 13.103)
   // =========================================================================
   {
     id: "doc_relacao_frota_crlv",
@@ -275,7 +281,7 @@ export const ALL_SYSTEM_DOCUMENTS = [
     nome: "CNH válida dos motoristas com exame toxicológico em dia",
     shortName: "CNH Motoristas + Toxicológico",
     obrigatorio: true,
-    hint: "Comprovante de CNHs profissionais dos condutores com exame toxicológico periódico regular."
+    hint: "Comprovante de CNHs profissionais dos condutores com exame toxicológico periódico regular (Lei 13.103)."
   }
 ];
 

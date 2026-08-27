@@ -5,6 +5,7 @@ import ParecerGenerator from './ParecerGenerator';
 import { calculateRiskScore, evaluateCarrier, generateExecutiveSummary, generateRequiredActions } from '../../services/riskEngineService';
 import { saveCarrier } from '../../services/storageService';
 import { calculateDocumentValidity, OFFICIAL_DOCUMENT_CATEGORIES, ALL_SYSTEM_DOCUMENTS, formatDateBR } from '../../services/validityCalculator';
+import { evaluateComplianceStandards } from '../../services/complianceStandardsService';
 
 export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdateCarrierList, onSyncDrive }) {
   const carrier = allCarriers.find(c => c.id === carrierId) || allCarriers[0];
@@ -335,9 +336,76 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
             </div>
           </div>
 
-          {/* Coluna Direita: Score Engine */}
+          {/* Coluna Direita: Score Engine & Conformidade Normativa */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <RiskScoreEngine scoreTotal={currentCarrier.scoreTotal} breakdown={currentCarrier.scoreBreakdown} />
+
+            {/* Painel de Conformidade Normativa & ESG (RDC 48, ISO 9001, ISO 22716, Grupo Boticário) */}
+            {(() => {
+              const compliance = evaluateComplianceStandards(currentCarrier);
+              return (
+                <div className="card" style={{ border: compliance.boticarioApproved ? '1.5px solid #86EFAC' : '1.5px solid #CBD5E1', background: '#FFFFFF' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', color: 'var(--primary-900)', margin: 0 }}>
+                        Aderência Normativa & ESG
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                        RDC 48 • ISO 9001 (8.4.3) • ISO 22716 • Grupo Boticário
+                      </span>
+                    </div>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      background: compliance.overallPercentage >= 70 ? '#DCFCE7' : '#FEF3C7',
+                      color: compliance.overallPercentage >= 70 ? '#166534' : '#92400E',
+                      padding: '2px 8px',
+                      borderRadius: 4
+                    }}>
+                      {compliance.overallPercentage}% CONFORME
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    {compliance.pillars.map(p => {
+                      const isOk = p.status === 'CONFORME';
+                      const isPartial = p.status === 'PARCIAL';
+                      return (
+                        <div key={p.id} style={{
+                          padding: '0.5rem 0.65rem',
+                          background: isOk ? '#F0FDF4' : isPartial ? '#FFFBEB' : '#FEF2F2',
+                          border: `1px solid ${isOk ? '#BBF7D0' : isPartial ? '#FDE68A' : '#FECACA'}`,
+                          borderRadius: '4px',
+                          fontSize: '0.78rem'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <strong style={{ color: isOk ? '#166534' : isPartial ? '#92400E' : '#991B1B' }}>
+                              {p.name}
+                            </strong>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isOk ? '#059669' : '#D97706' }}>
+                              {p.score} pts
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '1px 0' }}>
+                            {p.normas}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-primary)', marginTop: '2px' }}>
+                            {p.details}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {compliance.boticarioApproved && (
+                    <div style={{ marginTop: '0.75rem', background: '#EFF6FF', border: '1px solid #93C5FD', padding: '6px 10px', borderRadius: 4, fontSize: '0.75rem', color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={14} color="#2563EB" />
+                      <span><strong>Qualificado:</strong> Apto para operações de cosméticos e requisitos do Grupo Boticário.</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Quick Summary Card */}
             <div className="card">
@@ -345,10 +413,11 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
                 Resumo da Gestão de Risco
               </h4>
               <div style={{ fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', color: 'var(--text-secondary)' }}>
+                <div><strong>Modelo Seguro:</strong> {currentCarrier.gestaoRisco?.estipuladoLogShare ? 'Apólice Mestre LogShare (Estipulada)' : 'Apólice Própria Transportador'}</div>
                 <div><strong>Seguradora:</strong> {currentCarrier.gestaoRisco?.seguradora || 'Não informada'}</div>
                 <div><strong>LMG Cobertura:</strong> R$ {currentCarrier.gestaoRisco?.lmg ? currentCarrier.gestaoRisco.lmg.toLocaleString('pt-BR') : '0'}</div>
-                <div><strong>Apólice RCTR-C:</strong> {currentCarrier.gestaoRisco?.apoliceRCTR_C || '—'}</div>
-                <div><strong>Apólice RC-DC:</strong> {currentCarrier.gestaoRisco?.apoliceRC_DC || '—'}</div>
+                <div><strong>Apólice RCTR-C:</strong> {currentCarrier.gestaoRisco?.apoliceRCTR_C || (currentCarrier.gestaoRisco?.estipuladoLogShare ? 'Estipulada LogShare' : '—')}</div>
+                <div><strong>Apólice RC-DC:</strong> {currentCarrier.gestaoRisco?.apoliceRC_DC || (currentCarrier.gestaoRisco?.estipuladoLogShare ? 'Estipulada LogShare' : '—')}</div>
                 <div><strong>Gerenciadora de Risco:</strong> {currentCarrier.gestaoRisco?.gerenciadoraRisco || '—'}</div>
                 <div><strong>PGR Formalizado:</strong> {currentCarrier.gestaoRisco?.temPGR ? 'Sim (Ativo)' : 'Não'}</div>
               </div>
