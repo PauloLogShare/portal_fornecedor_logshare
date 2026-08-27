@@ -447,10 +447,14 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
               </h4>
               <div style={{ fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', color: 'var(--text-secondary)' }}>
                 <div><strong>Modelo Seguro:</strong> {currentCarrier.gestaoRisco?.estipuladoLogShare ? 'Apólice Mestre LogShare (Estipulada)' : 'Apólice Própria Transportador'}</div>
-                <div><strong>Seguradora:</strong> {currentCarrier.gestaoRisco?.seguradora || 'Não informada'}</div>
-                <div><strong>LMG Cobertura:</strong> R$ {currentCarrier.gestaoRisco?.lmg ? currentCarrier.gestaoRisco.lmg.toLocaleString('pt-BR') : '0'}</div>
-                <div><strong>Apólice RCTR-C:</strong> {currentCarrier.gestaoRisco?.apoliceRCTR_C || (currentCarrier.gestaoRisco?.estipuladoLogShare ? 'Estipulada LogShare' : '—')}</div>
-                <div><strong>Apólice RC-DC:</strong> {currentCarrier.gestaoRisco?.apoliceRC_DC || (currentCarrier.gestaoRisco?.estipuladoLogShare ? 'Estipulada LogShare' : '—')}</div>
+                {!currentCarrier.gestaoRisco?.estipuladoLogShare && (
+                  <>
+                    <div><strong>Seguradora:</strong> {currentCarrier.gestaoRisco?.seguradora || 'Não informada'}</div>
+                    <div><strong>LMG Cobertura:</strong> R$ {currentCarrier.gestaoRisco?.lmg ? currentCarrier.gestaoRisco.lmg.toLocaleString('pt-BR') : '0'}</div>
+                    <div><strong>Apólice RCTR-C:</strong> {currentCarrier.gestaoRisco?.apoliceRCTR_C || '—'}</div>
+                    <div><strong>Apólice RC-DC:</strong> {currentCarrier.gestaoRisco?.apoliceRC_DC || '—'}</div>
+                  </>
+                )}
                 <div><strong>Gerenciadora de Risco:</strong> {currentCarrier.gestaoRisco?.gerenciadoraRisco || '—'}</div>
                 <div><strong>PGR Formalizado:</strong> {currentCarrier.gestaoRisco?.temPGR ? 'Sim (Ativo)' : 'Não'}</div>
               </div>

@@ -236,95 +236,113 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
             </div>
           </div>
 
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label className="form-label" htmlFor="seguradora">
-                Companhia Seguradora {isEstipuladoLogShare ? "(Estipulada LogShare)" : ""} <span className="required">*</span>
-              </label>
-              <select
-                id="seguradora"
-                className="form-select"
-                value={gr.seguradora || ''}
-                onChange={(e) => handleNestedChange('gestaoRisco', 'seguradora', e.target.value)}
-                required
-              >
-                <option value="">Selecione a seguradora...</option>
-                {SEGURADORAS_COMUNS.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="lmg">
-                Limite Máximo de Garantia (LMG por Viagem em R$) <span className="required">*</span>
-              </label>
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                  R$
-                </span>
-                <input
-                  id="lmg"
-                  type="number"
-                  step="10000"
-                  className="form-input"
-                  style={{ paddingLeft: '2.5rem' }}
-                  placeholder="Ex: 500000"
-                  value={gr.lmg ?? ''}
-                  onChange={(e) => handleNestedChange('gestaoRisco', 'lmg', parseFloat(e.target.value) || 0)}
-                  required
-                />
-              </div>
-              <span className="form-hint">
-                Valor estimado ou teto de cobertura por veículo
-              </span>
-            </div>
-          </div>
-
-          {!isEstipuladoLogShare && (
-            <div className="form-grid-3" style={{ marginTop: '1rem' }}>
-              <div className="form-group">
-                <label className="form-label" htmlFor="apoliceRCTR_C">
-                  Número da Apólice RCTR-C (Acidentes)
-                </label>
-                <input
-                  id="apoliceRCTR_C"
-                  type="text"
-                  className="form-input"
-                  placeholder="Ex: 01.077.982.0001-44"
-                  value={gr.apoliceRCTR_C || ''}
-                  onChange={(e) => handleNestedChange('gestaoRisco', 'apoliceRCTR_C', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="apoliceRC_DC">
-                  Número da Apólice RC-DC (Roubo/Desvio)
-                </label>
-                <input
-                  id="apoliceRC_DC"
-                  type="text"
-                  className="form-input"
-                  placeholder="Ex: 01.077.982.0002-55"
-                  value={gr.apoliceRC_DC || ''}
-                  onChange={(e) => handleNestedChange('gestaoRisco', 'apoliceRC_DC', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="vigenciaApolice">
-                  Data de Vencimento da Apólice
-                </label>
-                <input
-                  id="vigenciaApolice"
-                  type="text"
-                  className="form-input"
-                  placeholder="DD/MM/AAAA"
-                  value={gr.vigenciaApolice || ''}
-                  onChange={(e) => handleNestedChange('gestaoRisco', 'vigenciaApolice', e.target.value)}
-                />
+          {/* Se for Estipulação LogShare: Não exibe Seguradora nem LMG nem campos de apólice */}
+          {isEstipuladoLogShare ? (
+            <div style={{
+              background: '#F0FDF4',
+              border: '1px solid #86EFAC',
+              borderRadius: 'var(--radius-md)',
+              padding: '1rem 1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}>
+              <CheckCircle2 size={22} color="#10B981" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '0.825rem', color: '#065F46', lineHeight: 1.5 }}>
+                <strong>Apólice Mestre LogShare Ativa:</strong> As viagens e cargas serão cobertas e averbadas sob a apólice mestre estipulada da LogShare. A transportadora não precisa preencher dados de seguradora própria ou Limite Máximo de Garantia (LMG) nesta etapa.
               </div>
             </div>
+          ) : (
+            <>
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="seguradora">
+                    Companhia Seguradora <span className="required">*</span>
+                  </label>
+                  <select
+                    id="seguradora"
+                    className="form-select"
+                    value={gr.seguradora || ''}
+                    onChange={(e) => handleNestedChange('gestaoRisco', 'seguradora', e.target.value)}
+                    required
+                  >
+                    <option value="">Selecione a seguradora...</option>
+                    {SEGURADORAS_COMUNS.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="lmg">
+                    Limite Máximo de Garantia (LMG por Viagem em R$) <span className="required">*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                      R$
+                    </span>
+                    <input
+                      id="lmg"
+                      type="number"
+                      step="10000"
+                      className="form-input"
+                      style={{ paddingLeft: '2.5rem' }}
+                      placeholder="Ex: 500000"
+                      value={gr.lmg ?? ''}
+                      onChange={(e) => handleNestedChange('gestaoRisco', 'lmg', parseFloat(e.target.value) || 0)}
+                      required
+                    />
+                  </div>
+                  <span className="form-hint">
+                    Valor estimado ou teto de cobertura por veículo
+                  </span>
+                </div>
+              </div>
+
+              <div className="form-grid-3" style={{ marginTop: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="apoliceRCTR_C">
+                    Número da Apólice RCTR-C (Acidentes)
+                  </label>
+                  <input
+                    id="apoliceRCTR_C"
+                    type="text"
+                    className="form-input"
+                    placeholder="Ex: 01.077.982.0001-44"
+                    value={gr.apoliceRCTR_C || ''}
+                    onChange={(e) => handleNestedChange('gestaoRisco', 'apoliceRCTR_C', e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="apoliceRC_DC">
+                    Número da Apólice RC-DC (Roubo/Desvio)
+                  </label>
+                  <input
+                    id="apoliceRC_DC"
+                    type="text"
+                    className="form-input"
+                    placeholder="Ex: 01.077.982.0002-55"
+                    value={gr.apoliceRC_DC || ''}
+                    onChange={(e) => handleNestedChange('gestaoRisco', 'apoliceRC_DC', e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="vigenciaApolice">
+                    Data de Vencimento da Apólice
+                  </label>
+                  <input
+                    id="vigenciaApolice"
+                    type="text"
+                    className="form-input"
+                    placeholder="DD/MM/AAAA"
+                    value={gr.vigenciaApolice || ''}
+                    onChange={(e) => handleNestedChange('gestaoRisco', 'vigenciaApolice', e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
           )}
         </div>
 
