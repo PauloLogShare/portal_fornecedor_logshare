@@ -89,6 +89,27 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
 
     const isExpired = aiResult.validityAnalysis?.key === "EXPIRED";
     const existingIndex = docs.findIndex(d => d.id === docDef.id);
+    const existingDoc = existingIndex >= 0 ? docs[existingIndex] : null;
+
+    // Preserva histórico caso o arquivo já tenha sido anexado
+    const previousHistory = existingDoc?.history || [];
+    let updatedHistory = [...previousHistory];
+    let version = 1;
+
+    if (existingDoc && (existingDoc.arquivoBase64 || existingDoc.arquivoNome)) {
+      version = (existingDoc.version || 1) + 1;
+      updatedHistory.push({
+        version: existingDoc.version || 1,
+        arquivoNome: existingDoc.arquivoNome,
+        arquivoTamanho: existingDoc.arquivoTamanho,
+        arquivoMime: existingDoc.arquivoMime,
+        arquivoBase64: existingDoc.arquivoBase64,
+        vigencia: existingDoc.vigencia,
+        status: existingDoc.status,
+        dataEnvio: existingDoc.dataEnvio || new Date().toISOString(),
+        substituidoEm: new Date().toISOString()
+      });
+    }
 
     const newDoc = {
       id: docDef.id,
@@ -103,6 +124,8 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
       arquivoTamanho: `${(file.size / 1024).toFixed(1)} KB`,
       arquivoMime: file.type || "application/pdf",
       arquivoBase64: base64Data,
+      version: version,
+      history: updatedHistory,
       aiAnalysis: {
         confidence: aiResult.confidence,
         extractedDocType: aiResult.extractedDocType,

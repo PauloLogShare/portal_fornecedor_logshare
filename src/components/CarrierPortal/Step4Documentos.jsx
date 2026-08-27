@@ -113,16 +113,31 @@ export default function Step4Documentos({ formData, updateFormData }) {
     updateFormData('documentos', updated);
   };
 
-  // Metrics
+  // Metrics & Conditional Visibility
   const isLogShareInsurance = formData.gestaoRisco?.estipuladoLogShare || formData.gestaoRisco?.modeloSeguro === 'LOGSHARE_ESTIPULADO';
-  const mandatoryDocs = ALL_SYSTEM_DOCUMENTS.filter(d => d.obrigatorio);
-  const mandatoryUploadedCount = mandatoryDocs.filter(m => docs.some(d => d.id === m.id)).length;
-  const totalUploadedCount = docs.length;
 
-  // Filtered list
-  const filteredDocs = selectedCategory === "ALL" 
-    ? ALL_SYSTEM_DOCUMENTS 
-    : ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId === selectedCategory);
+  // Lista de documentos do sistema exibidos no Step 4:
+  // Se o seguro for estipulado pela LogShare, a categoria de seguros (cat_seguros_pgr) não é exibida
+  const availableSystemDocs = isLogShareInsurance
+    ? ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId !== "cat_seguros_pgr")
+    : ALL_SYSTEM_DOCUMENTS;
+
+  // Categorias visíveis no Step 4
+  const visibleCategories = isLogShareInsurance
+    ? OFFICIAL_DOCUMENT_CATEGORIES.filter(c => c.id !== "cat_seguros_pgr")
+    : OFFICIAL_DOCUMENT_CATEGORIES;
+
+  // Categoria ativa segura
+  const activeCategory = (isLogShareInsurance && selectedCategory === "cat_seguros_pgr") ? "ALL" : selectedCategory;
+
+  const mandatoryDocs = availableSystemDocs.filter(d => d.obrigatorio);
+  const mandatoryUploadedCount = mandatoryDocs.filter(m => docs.some(d => d.id === m.id)).length;
+  const totalUploadedCount = docs.filter(d => availableSystemDocs.some(m => m.id === d.id)).length;
+
+  // Lista filtrada
+  const filteredDocs = activeCategory === "ALL" 
+    ? availableSystemDocs 
+    : availableSystemDocs.filter(d => d.categoryId === activeCategory);
 
   return (
     <div className="animate-fade-in">
@@ -185,18 +200,18 @@ export default function Step4Documentos({ formData, updateFormData }) {
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
         <button
           type="button"
-          className={`btn btn-sm ${selectedCategory === "ALL" ? "btn-primary" : "btn-secondary"}`}
+          className={`btn btn-sm ${activeCategory === "ALL" ? "btn-primary" : "btn-secondary"}`}
           onClick={() => setSelectedCategory("ALL")}
           style={{ fontSize: '0.78rem' }}
         >
           <Filter size={13} />
-          <span>Todos ({ALL_SYSTEM_DOCUMENTS.length})</span>
+          <span>Todos ({availableSystemDocs.length})</span>
         </button>
 
-        {OFFICIAL_DOCUMENT_CATEGORIES.map(cat => {
-          const countInCat = ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId === cat.id).length;
-          const uploadedInCat = ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId === cat.id && docs.some(doc => doc.id === d.id)).length;
-          const isSelected = selectedCategory === cat.id;
+        {visibleCategories.map(cat => {
+          const countInCat = availableSystemDocs.filter(d => d.categoryId === cat.id).length;
+          const uploadedInCat = availableSystemDocs.filter(d => d.categoryId === cat.id && docs.some(doc => doc.id === d.id)).length;
+          const isSelected = activeCategory === cat.id;
 
           return (
             <button
