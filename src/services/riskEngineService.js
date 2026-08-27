@@ -10,9 +10,11 @@ export const RISK_LEVELS = {
 };
 
 export const STANDARD_RESTRICTIONS = [
+  "Alocação condicionada à análise caso a caso dos requisitos do cliente e valor da carga",
   "Teto de valor de carga fixado em até R$ 300.000,00 por viagem",
   "Teto de valor de carga fixado em até R$ 500.000,00 por viagem",
-  "Obrigatoriedade de escolta armada em viagens com cargas visadas (eletrônicos/medicamentos)",
+  "Obrigatoriedade de validação de licenças sanitárias/ambientais conforme produto transportado (AFE, VISA, IBAMA)",
+  "Obrigatoriedade de escolta armada em viagens com cargas visadas (eletrônicos/medicamentos/cosméticos)",
   "Obrigatoriedade de duplo rastreamento (telemetria primária + redundância móvel/isca)",
   "Proibição estrita de subcontratação ou redespacho sem prévia anuência da LogShare",
   "Exclusividade para transporte de cargas secas e não perigosas",
@@ -199,7 +201,7 @@ export function generateExecutiveSummary(carrier, status, score) {
   }
 
   if (status === "APTA_COM_RESTRICOES") {
-    return `Transportadora ${carrier.razaoSocial} avaliada com score intermediário (${score}/1000 pontos) e nível de risco moderado. A empresa possui RNTRC e seguros vigentes, contudo foram identificadas pendências documentais parciais ou limites de apólice (${lmgFormatted}) que exigem condicionamento operacional preventivo. Liberação condicionada ao estrito cumprimento das restrições e prazos de regularização fixados neste parecer.`;
+    return `Transportadora ${carrier.razaoSocial} avaliada com score intermediário (${score}/1000 pontos) e nível de risco moderado. A empresa possui RNTRC e seguros vigentes, com liberação operacional aprovada com travas de segurança (teto de carga R$ 300k-500k, duplo rastreamento e proibição de redespacho). DIRETRIZ DE ALOCAÇÃO: Os casos com restrições serão analisados caso a caso a depender do cliente/embarcador em questão, das licenças regulatórias necessárias para a rota/produto (ex: AFE, VISA, IBAMA) e do valor específico da carga.`;
   }
 
   return `Após análise minuciosa pelo time de Homologação e Compliance LogShare, a transportadora ${carrier.razaoSocial} foi classificada como NÃO APTA (Score ${score}/1000 pontos). Identificadas não conformidades críticas de ordem regulatória, ausência/irregularidade em seguros obrigatórios (RCTR-C/RC-DC) ou pendências impeditivas em gerenciamento de risco. Operação suspensa/bloqueada na plataforma até integral saneamento dos itens apontados.`;

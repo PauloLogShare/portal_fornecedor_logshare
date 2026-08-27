@@ -274,7 +274,10 @@ export default function POPHomologacaoModal({ isOpen, onClose }) {
             <tr>
               <td><span class="tag tag-restricoes">APTA COM RESTRIÇÕES</span></td>
               <td><strong>600 a 799 pontos</strong></td>
-              <td>Operação com travas: Teto de carga (R$ 300k-500k), escolta armada para cargas visadas, duplo rastreamento e proibição de redespacho.</td>
+              <td>
+                <strong>Operação com travas:</strong> Teto de carga (R$ 300k-500k), escolta armada para cargas visadas, duplo rastreamento e proibição de redespacho.<br>
+                <em style="color: #92400E; font-size: 8.5pt;">* Diretriz de Alocação: Os casos de transportadores com restrições serão analisados a depender do cliente em questão, licenças necessárias e valor da carga.</em>
+              </td>
             </tr>
             <tr>
               <td><span class="tag tag-nao-apta">NÃO APTA</span></td>
@@ -702,12 +705,15 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
                   <p style={{ fontSize: '0.8rem', color: '#92400E', margin: '0.4rem 0' }}>
                     <strong>Score entre 600 e 799 pontos</strong> ou pendência menor.
                   </p>
-                  <ul style={{ fontSize: '0.75rem', color: '#78350F', paddingLeft: '1.1rem', margin: 0 }}>
+                  <ul style={{ fontSize: '0.75rem', color: '#78350F', paddingLeft: '1.1rem', margin: '0 0 0.5rem 0' }}>
                     <li>Teto de carga de R$ 300k a R$ 500k por viagem.</li>
                     <li>Escolta armada obrigatória em cargas visadas.</li>
                     <li>Duplo rastreamento obrigatório.</li>
                     <li>Proibição de redespacho sem anuência prévia.</li>
                   </ul>
+                  <div style={{ background: 'rgba(245, 158, 11, 0.15)', borderLeft: '3px solid #F59E0B', padding: '5px 8px', borderRadius: '0 4px 4px 0', fontSize: '0.72rem', color: '#92400E' }}>
+                    <strong>Diretriz de Alocação:</strong> Os casos com restrições serão analisados a depender do cliente em questão, licenças necessárias e valor da carga.
+                  </div>
                 </div>
 
                 <div style={{ border: '2px solid #EF4444', background: '#FEF2F2', borderRadius: '8px', padding: '1rem' }}>
