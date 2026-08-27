@@ -5,24 +5,52 @@ import SpecialistDashboard from './components/SpecialistPanel/SpecialistDashboar
 import DossierDetail from './components/SpecialistPanel/DossierDetail';
 import ValidityMonitorDashboard from './components/SpecialistPanel/ValidityMonitorDashboard';
 import DriveSyncView from './components/GoogleDriveSync/DriveSyncView';
+import GoogleLoginModal from './components/Auth/GoogleLoginModal';
 import { loadCarriers, resetToDefaults, saveCarrier } from './services/storageService';
 import { syncCarrierToGoogleDrive } from './services/driveSyncService';
 import { calculateDocumentValidity } from './services/validityCalculator';
+import { getStoredUser, saveUserSession, clearUserSession } from './services/authService';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [appMode, setAppMode] = useState('SPECIALIST'); // 'SPECIALIST' | 'CARRIER_STANDALONE'
   const [activeView, setActiveView] = useState('specialist'); // 'carrier' | 'specialist' | 'validity' | 'gdrive'
   const [carriers, setCarriers] = useState([]);
   const [selectedCarrierId, setSelectedCarrierId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   useEffect(() => {
-    const loaded = loadCarriers();
-    setCarriers(loaded);
+    // Check url param ?mode=carrier
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'carrier' || params.get('portal') === 'true') {
+      setAppMode('CARRIER_STANDALONE');
+    }
+
+    const loadedUser = getStoredUser();
+    if (loadedUser) {
+      setCurrentUser(loadedUser);
+    }
+
+    const loadedCarriers = loadCarriers();
+    setCarriers(loadedCarriers);
   }, []);
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    saveUserSession(user);
+    setAppMode('SPECIALIST');
+    showToast(`Bem-vindo, ${user.name}! Acesso liberado via Google Workspace.`);
+  };
+
+  const handleLogout = () => {
+    clearUserSession();
+    setCurrentUser(null);
+    showToast("Sessão Google Workspace encerrada.");
   };
 
   const handleResetData = () => {
@@ -37,7 +65,7 @@ export default function App() {
   const handleDossierSubmitted = (newCarrier) => {
     const updated = loadCarriers();
     setCarriers(updated);
-    showToast(`Dossiê [${newCarrier.protocol}] registrado e pronto para análise do especialista!`);
+    showToast(`Dossiê [${newCarrier.protocol}] atualizado com sucesso!`);
   };
 
   const handleUpdateCarrierList = (updatedList) => {
@@ -59,9 +87,41 @@ export default function App() {
     return res;
   };
 
+  // =========================================================================
+  // SCENARIO 1: STANDALONE CARRIER PUBLIC PORTAL (ISOLATED VIEW)
+  // =========================================================================
+  if (appMode === 'CARRIER_STANDALONE') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-subtle)', padding: '1.5rem 1rem' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <CarrierPortal
+            isStandalone={true}
+            carriers={carriers}
+            onDossierSubmitted={handleDossierSubmitted}
+            onOpenSpecialistLogin={() => setAppMode('SPECIALIST')}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // SCENARIO 2: SPECIALIST LOGIN SCREEN VIA GOOGLE SSO
+  // =========================================================================
+  if (!currentUser) {
+    return (
+      <GoogleLoginModal
+        onLoginSuccess={handleLoginSuccess}
+        onSwitchToCarrierPublic={() => setAppMode('CARRIER_STANDALONE')}
+      />
+    );
+  }
+
+  // =========================================================================
+  // SCENARIO 3: AUTHENTICATED SPECIALIST BACKOFFICE & RISK MANAGEMENT
+  // =========================================================================
   const pendingCount = carriers.filter(c => c.status === 'AGUARDANDO_ANALISE' || !c.status).length;
   
-  // Count carriers with at least 1 expired mandatory document
   const expiredCount = carriers.filter(c => {
     return (c.documentos || []).some(d => {
       const v = calculateDocumentValidity(d.vigencia);
@@ -83,6 +143,9 @@ export default function App() {
         pendingCount={pendingCount}
         expiredCount={expiredCount}
         onResetData={handleResetData}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onOpenStandalonePortal={() => setAppMode('CARRIER_STANDALONE')}
       />
 
       {/* Toast Notification */}
@@ -112,9 +175,12 @@ export default function App() {
 
       {/* Main Body View */}
       <main className="main-content">
-        {/* VIEW 1: Portal do Transportador (Link Externo) */}
+        {/* VIEW 1: Portal do Transportador (Dentro do Painel) */}
         {activeView === 'carrier' && (
-          <CarrierPortal onDossierSubmitted={handleDossierSubmitted} />
+          <CarrierPortal
+            carriers={carriers}
+            onDossierSubmitted={handleDossierSubmitted}
+          />
         )}
 
         {/* VIEW 2: Painel do Especialista LogShare (Backoffice) */}
@@ -168,7 +234,7 @@ export default function App() {
             <strong>LogShare</strong> — Plataforma Inteligente de Homologação e Gestão de Risco de Transportadores
           </div>
           <div>
-            Validação IA OCR • Semáforo de Vigências (🔴 🟡 🟢) • Google Workspace Sync
+            Autenticação Google SSO (@logshare.com.br) • Validação IA OCR • Semáforo de Vigências
           </div>
         </div>
       </footer>
