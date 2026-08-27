@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, FileText, Shield, Truck, Building2, DollarSign, Calendar, Eye, RefreshCw, Save, Send, Sparkles, Layers } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, FileText, Shield, Truck, Building2, DollarSign, Calendar, Eye, RefreshCw, Save, Send, Sparkles, Layers, History, Clock } from 'lucide-react';
 import RiskScoreEngine from './RiskScoreEngine';
 import ParecerGenerator from './ParecerGenerator';
+import DocumentVersionHistoryModal from './DocumentVersionHistoryModal';
 import { calculateRiskScore, evaluateCarrier, generateExecutiveSummary, generateRequiredActions } from '../../services/riskEngineService';
 import { saveCarrier } from '../../services/storageService';
 import { calculateDocumentValidity, OFFICIAL_DOCUMENT_CATEGORIES, ALL_SYSTEM_DOCUMENTS, formatDateBR } from '../../services/validityCalculator';
@@ -13,6 +14,7 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
   const [activeTab, setActiveTab] = useState('audit'); // 'audit' | 'parecer' | 'profile'
   const [docsState, setDocsState] = useState(carrier.documentos || []);
   const [currentCarrier, setCurrentCarrier] = useState(carrier);
+  const [historyModalDoc, setHistoryModalDoc] = useState(null);
 
   const [parecerState, setParecerState] = useState(
     carrier.parecer || {
@@ -250,11 +252,17 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                               <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                   <span style={{ fontSize: '1rem' }}>{validity.icon}</span>
                                   <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
                                     {doc.nome}
                                   </span>
+                                  
+                                  {/* Version Pill */}
+                                  <span style={{ fontSize: '0.65rem', background: '#E2E8F0', color: '#1E293B', padding: '1px 5px', borderRadius: 4, fontWeight: 800 }}>
+                                    v{doc.version || (doc.history?.length ? doc.history.length + 1 : 1)}
+                                  </span>
+
                                   {doc.obrigatorio ? (
                                     <span style={{ fontSize: '0.65rem', background: '#fee2e2', color: '#991b1b', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
                                       🔴 OBRIGATÓRIO
@@ -263,6 +271,31 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
                                     <span style={{ fontSize: '0.65rem', background: '#F1F5F9', color: '#475569', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
                                       ⚪ CONDICIONAL
                                     </span>
+                                  )}
+
+                                  {/* History Button if previous versions exist */}
+                                  {doc.history && doc.history.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setHistoryModalDoc(doc)}
+                                      style={{
+                                        border: '1px solid #BFDBFE',
+                                        background: '#EFF6FF',
+                                        color: '#1E40AF',
+                                        borderRadius: '4px',
+                                        padding: '1px 6px',
+                                        fontSize: '0.675rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '3px'
+                                      }}
+                                      title="Visualizar versões anteriores arquivadas deste documento"
+                                    >
+                                      <History size={11} />
+                                      <span>Histórico ({doc.history.length})</span>
+                                    </button>
                                   )}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2px' }}>
@@ -509,6 +542,14 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
           </div>
         </div>
       )}
+
+      {/* Modal de Histórico de Versões Anteriores */}
+      <DocumentVersionHistoryModal
+        isOpen={!!historyModalDoc}
+        onClose={() => setHistoryModalDoc(null)}
+        document={historyModalDoc}
+        carrierName={currentCarrier.razaoSocial}
+      />
     </div>
   );
 }

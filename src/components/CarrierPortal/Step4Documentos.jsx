@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { UploadCloud, CheckCircle2, AlertCircle, FileText, Sparkles, Trash2, Calendar, ShieldCheck, Check, Filter, AlertTriangle } from 'lucide-react';
+import { UploadCloud, CheckCircle2, AlertCircle, FileText, Sparkles, Trash2, Calendar, ShieldCheck, Check, Filter, AlertTriangle, History } from 'lucide-react';
 import { scanDocumentWithAI } from '../../services/aiDocumentScanner';
 import { calculateDocumentValidity, formatDateBR, ALL_SYSTEM_DOCUMENTS, OFFICIAL_DOCUMENT_CATEGORIES } from '../../services/validityCalculator';
+import DocumentVersionHistoryModal from '../SpecialistPanel/DocumentVersionHistoryModal';
 
 export default function Step4Documentos({ formData, updateFormData }) {
   const docs = formData.documentos || [];
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [scanningDocId, setScanningDocId] = useState(null);
+  const [historyModalDoc, setHistoryModalDoc] = useState(null);
 
   const readFileAsBase64 = (file) => {
     return new Promise((resolve) => {
@@ -32,7 +34,28 @@ export default function Step4Documentos({ formData, updateFormData }) {
     setScanningDocId(null);
 
     const existingIndex = docs.findIndex(d => d.id === docDef.id);
+    const existingDoc = existingIndex >= 0 ? docs[existingIndex] : null;
     const isExpired = aiResult.validityAnalysis?.key === "EXPIRED";
+
+    // Versioning logic: preserve previous file in history array
+    const previousHistory = existingDoc?.history || [];
+    let updatedHistory = [...previousHistory];
+    let version = 1;
+
+    if (existingDoc && (existingDoc.arquivoBase64 || existingDoc.arquivoNome)) {
+      version = (existingDoc.version || 1) + 1;
+      updatedHistory.push({
+        version: existingDoc.version || 1,
+        arquivoNome: existingDoc.arquivoNome,
+        arquivoTamanho: existingDoc.arquivoTamanho,
+        arquivoMime: existingDoc.arquivoMime,
+        arquivoBase64: existingDoc.arquivoBase64,
+        vigencia: existingDoc.vigencia,
+        status: existingDoc.status,
+        dataEnvio: existingDoc.dataEnvio || new Date().toISOString(),
+        substituidoEm: new Date().toISOString()
+      });
+    }
 
     const newDoc = {
       id: docDef.id,
@@ -46,6 +69,8 @@ export default function Step4Documentos({ formData, updateFormData }) {
       arquivoTamanho: `${(file.size / 1024).toFixed(1)} KB`,
       arquivoMime: file.type || "application/pdf",
       arquivoBase64: base64Data,
+      version: version,
+      history: updatedHistory,
       aiAnalysis: {
         confidence: aiResult.confidence,
         extractedDocType: aiResult.extractedDocType,
@@ -276,14 +301,42 @@ export default function Step4Documentos({ formData, updateFormData }) {
                       gap: '0.5rem'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                           <CheckCircle2 size={16} color="#10B981" />
                           <strong style={{ fontSize: '0.825rem', color: 'var(--primary-900)' }}>
                             {uploaded.arquivoNome}
                           </strong>
+                          <span style={{ fontSize: '0.675rem', background: '#E2E8F0', color: '#1E293B', padding: '1px 5px', borderRadius: 4, fontWeight: 800 }}>
+                            v{uploaded.version || 1}
+                          </span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                             ({uploaded.arquivoTamanho})
                           </span>
+
+                          {/* History Button if previous versions exist */}
+                          {uploaded.history && uploaded.history.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setHistoryModalDoc(uploaded)}
+                              style={{
+                                border: '1px solid #BFDBFE',
+                                background: '#EFF6FF',
+                                color: '#1E40AF',
+                                borderRadius: '4px',
+                                padding: '1px 6px',
+                                fontSize: '0.675rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}
+                              title="Visualizar versões anteriores arquivadas deste documento"
+                            >
+                              <History size={11} />
+                              <span>Histórico ({uploaded.history.length})</span>
+                            </button>
+                          )}
                         </div>
 
                         {/* Validity Badge */}
@@ -349,7 +402,7 @@ export default function Step4Documentos({ formData, updateFormData }) {
                     ) : uploaded ? (
                       <>
                         <UploadCloud size={14} />
-                        <span>Substituir PDF</span>
+                        <span>Substituir (v{(uploaded.version || 1) + 1})</span>
                       </>
                     ) : (
                       <>
@@ -376,6 +429,14 @@ export default function Step4Documentos({ formData, updateFormData }) {
           );
         })}
       </div>
+
+      {/* Modal de Histórico de Versões */}
+      <DocumentVersionHistoryModal
+        isOpen={!!historyModalDoc}
+        onClose={() => setHistoryModalDoc(null)}
+        document={historyModalDoc}
+        carrierName={formData.razaoSocial}
+      />
     </div>
   );
 }
