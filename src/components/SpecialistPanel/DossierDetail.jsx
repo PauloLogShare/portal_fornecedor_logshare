@@ -339,6 +339,16 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
                               </div>
                             </div>
 
+                            {/* RNTRC API Validation Badge */}
+                            {doc.rntrcData && (
+                              <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 4, padding: '4px 8px', fontSize: '0.725rem', color: '#166534', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span><strong>RNTRC:</strong> {doc.rntrcData.numero}</span>
+                                <span><strong>Categoria:</strong> {doc.rntrcData.categoria}</span>
+                                <span><strong>Situação:</strong> <strong style={{ color: doc.rntrcData.situacao === 'ATIVO' ? '#15803D' : '#991B1B' }}>{doc.rntrcData.situacao}</strong></span>
+                                <span style={{ color: '#64748B', fontSize: '0.68rem', marginLeft: 'auto' }}>✓ ANTT / OpenCNPJ</span>
+                              </div>
+                            )}
+
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', paddingTop: '0.25rem', borderTop: '1px dashed rgba(0,0,0,0.08)' }}>
                               <span>Vigência informada:</span>
                               <input

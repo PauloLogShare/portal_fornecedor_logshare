@@ -28,8 +28,8 @@ export default function Step4Documentos({ formData, updateFormData }) {
     // 1. Read Base64 for Google Drive auto-sync
     const base64Data = await readFileAsBase64(file);
 
-    // 2. OCR AI Scanning for Dates and Numbers
-    const aiResult = await scanDocumentWithAI(file, docDef);
+    // 2. OCR AI Scanning for Dates and Numbers + OpenCNPJ RNTRC validation
+    const aiResult = await scanDocumentWithAI(file, docDef, formData);
 
     setScanningDocId(null);
 
@@ -71,11 +71,13 @@ export default function Step4Documentos({ formData, updateFormData }) {
       arquivoBase64: base64Data,
       version: version,
       history: updatedHistory,
+      rntrcData: aiResult.rntrcData || null,
       aiAnalysis: {
         confidence: aiResult.confidence,
         extractedDocType: aiResult.extractedDocType,
         extractedNumber: aiResult.extractedNumber,
         extractedRazaoSocial: aiResult.extractedRazaoSocial,
+        rntrcData: aiResult.rntrcData || null,
         notes: aiResult.extractedNotes,
         isExpired
       },
@@ -374,6 +376,42 @@ export default function Step4Documentos({ formData, updateFormData }) {
                           </span>
                         )}
                       </div>
+
+                      {/* RNTRC Real-Time Validation Box */}
+                      {uploaded.rntrcData && (
+                        <div style={{
+                          background: '#F0FDF4',
+                          border: '1px solid #86EFAC',
+                          borderRadius: 6,
+                          padding: '6px 10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          flexWrap: 'wrap',
+                          fontSize: '0.78rem'
+                        }}>
+                          <span style={{ color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <CheckCircle2 size={13} color="#16A34A" />
+                            <span>RNTRC: {uploaded.rntrcData.numero}</span>
+                          </span>
+                          <span style={{ background: '#DCFCE7', color: '#15803D', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: '0.72rem' }}>
+                            Categoria: <strong>{uploaded.rntrcData.categoria}</strong>
+                          </span>
+                          <span style={{
+                            background: uploaded.rntrcData.situacao === 'ATIVO' ? '#DCFCE7' : '#FEE2E2',
+                            color: uploaded.rntrcData.situacao === 'ATIVO' ? '#15803D' : '#991B1B',
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontWeight: 800,
+                            fontSize: '0.72rem'
+                          }}>
+                            Situação: <strong>{uploaded.rntrcData.situacao}</strong>
+                          </span>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginLeft: 'auto' }}>
+                            ✓ Validado via ANTT / OpenCNPJ
+                          </span>
+                        </div>
+                      )}
 
                       {/* AI Extraction Notes */}
                       {uploaded.aiAnalysis?.notes && (

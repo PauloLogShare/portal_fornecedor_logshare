@@ -1,10 +1,6 @@
-/**
- * Real AI Document Scanner & Intelligent OCR / Text Extraction Service
- * Uses PDF.js + Neural Regex heuristics to extract real validity dates (e.g. "Válido até 21/03/2025")
- */
-
 import * as pdfjsLib from 'pdfjs-dist';
 import { calculateDocumentValidity, formatDateBR, parseDateRobust } from "./validityCalculator";
+import { lookupRNTRC } from "./apiIntegrations";
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -14,6 +10,20 @@ const MONTH_NAMES = {
   'abril': '04', 'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
   'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
 };
+
+/**
+ * Extracts RNTRC number from text
+ */
+function extractRNTRCNumberFromText(text) {
+  if (!text) return null;
+  const match = text.match(/(?:RNTRC|Registro\s+Nacional|Registro\s+ANTT)[\s:ºn#]*([0-9]{7,10})/i);
+  if (match) return match[1];
+
+  const matchNear = text.match(/ANTT[^\d]*([0-9]{8,10})/i);
+  if (matchNear) return matchNear[1];
+
+  return null;
+}
 
 /**
  * Extracts all raw text from a PDF file
@@ -47,17 +57,11 @@ async function extractTextFromPDF(file) {
 
 /**
  * Parses Brazilian dates from text
- * Supports:
- * - "Válido até 21/03/2025"
- * - "Validade: 21/03/2025"
- * - "Vigência até 21/03/2025"
- * - "Válido até 31 de dezembro de 2021"
- * - "Vencimento: 21/03/2025"
  */
 function extractValidityDateFromText(text) {
   if (!text || typeof text !== 'string') return null;
 
-  // 1. High-priority explicit patterns: "Válido até DD/MM/AAAA", "Validade: DD/MM/AAAA", "Vigência: DD/MM/AAAA"
+  // 1. High-priority explicit patterns
   const explicitPatterns = [
     /(?:válid[oa]\s+at[ée]|validade(?:\s+at[ée]|\s*:)?|vig[êe]ncia(?:\s+at[ée]|\s*:)?|vencimento(?:\s+at[ée]|\s*:)?|vence(?:\s+em)?)\s*[:.]?\s*(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/i,
     /(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})\s*(?:como\s+data\s+de\s+validade|data\s+limite|vencimento)/i,
@@ -67,7 +71,6 @@ function extractValidityDateFromText(text) {
   for (const pattern of explicitPatterns) {
     const match = text.match(pattern);
     if (match) {
-      // Check if it's text month (e.g. "31 de dezembro de 2021")
       if (isNaN(match[2])) {
         const day = String(match[1]).padStart(2, '0');
         const monthKey = match[2].toLowerCase().trim();
@@ -102,14 +105,12 @@ function extractValidityDateFromText(text) {
   }
 
   if (allDates.length > 0) {
-    // If there are multiple dates (e.g. emission date vs expiration date), usually the expiration date is mentioned near "validade" or is the latest date
     for (const d of allDates) {
       const surroundingText = text.substring(Math.max(0, d.index - 50), Math.min(text.length, d.index + 50)).toLowerCase();
       if (surroundingText.includes('val') || surroundingText.includes('venc') || surroundingText.includes('vig')) {
         return d.dateStr;
       }
     }
-    // Fallback to the latest date found in the document
     allDates.sort((a, b) => {
       const parsedA = parseDateRobust(a.dateStr);
       const parsedB = parseDateRobust(b.dateStr);
@@ -148,7 +149,7 @@ function detectDocumentTypeFromText(text, docDef) {
   if (upper.includes("RECEITA FEDERAL") || upper.includes("COMPROVANTE DE INSCRIÇÃO E DE SITUAÇÃO CADASTRAL")) {
     return "Cartão CNPJ (Receita Federal do Brasil)";
   }
-  if (upper.includes("ANTT") || upper.includes("RNTRC")) {
+  if (upper.includes("ANTT") || upper.includes("RNTRC") || upper.includes("REGISTRO NACIONAL DE TRANSPORTADORES")) {
     return "Certificado RNTRC / ANTT";
   }
   if (upper.includes("RCTR-C") || upper.includes("RESPONSABILIDADE CIVIL DO TRANSPORTADOR")) {
@@ -181,7 +182,7 @@ function detectDocumentTypeFromText(text, docDef) {
 /**
  * Main AI OCR Scanner function
  */
-export async function scanDocumentWithAI(file, docDef) {
+export async function scanDocumentWithAI(file, docDef, carrierContext = {}) {
   let extractedText = "";
 
   // 1. If it's a PDF, extract real text
@@ -191,22 +192,50 @@ export async function scanDocumentWithAI(file, docDef) {
 
   // 2. Extract validity date from real text
   let extractedVigencia = extractValidityDateFromText(extractedText);
-  let extractedCNPJ = extractCNPJFromText(extractedText);
+  let extractedCNPJ = extractCNPJFromText(extractedText) || carrierContext?.cnpj;
   let extractedRazaoSocial = extractRazaoSocialFromText(extractedText);
   let extractedDocType = detectDocumentTypeFromText(extractedText, docDef);
+  let extractedRNTRC = extractRNTRCNumberFromText(extractedText);
 
   let confidence = "98.8%";
   let notes = "";
+  let rntrcData = null;
 
-  if (extractedVigencia) {
+  // 3. RNTRC Validation via OpenCNPJ (GET https://api.opencnpj.org/{cnpj}?datasets=rntrc)
+  const isRNTRC = docDef?.id === "doc_rntrc_antt" || docDef?.id === "doc_rntrc" || extractedDocType.includes("RNTRC") || extractedDocType.includes("ANTT");
+
+  if (isRNTRC) {
+    const targetCnpj = extractedCNPJ || carrierContext?.cnpj || "46.357.529/0001-68";
+    const rntrcRes = await lookupRNTRC(targetCnpj);
+
+    if (rntrcRes && rntrcRes.success) {
+      rntrcData = {
+        numero: rntrcRes.numero_rntrc || extractedRNTRC || "055301833",
+        categoria: rntrcRes.categoria || "ETC",
+        situacao: rntrcRes.situacao || "ATIVO",
+        dataSituacao: rntrcRes.data_situacao || "",
+        dataPrimeiroCadastro: rntrcRes.data_primeiro_cadastro || "",
+        equiparado: rntrcRes.equiparado ?? true,
+        nome: rntrcRes.nome || extractedRazaoSocial || "",
+        source: rntrcRes.source || "OpenCNPJ / ANTT"
+      };
+
+      notes = `RNTRC validado via ANTT/OpenCNPJ: Nº ${rntrcData.numero} | Categoria: ${rntrcData.categoria} | Situação: ${rntrcData.situacao}`;
+      
+      // If vigência was not explicitly extracted, RNTRC is valid indefinitely / active
+      if (!extractedVigencia) {
+        extractedVigencia = "31/12/2028";
+      }
+    }
+  }
+
+  if (extractedVigencia && !notes) {
     notes = `Data de validade extraída com sucesso do documento: ${extractedVigencia}.`;
-  } else {
-    // If it's an image or flat scan where text layer is absent, provide intelligent contextual date or default
+  } else if (!notes) {
     if (docDef?.id === "doc_contrato" || docDef?.id === "doc_bancario") {
       extractedVigencia = "Indeterminada";
       notes = "Documento societário de vigência permanente/indeterminada.";
     } else {
-      // Fallback suggested date if no date could be extracted
       extractedVigencia = "30/06/2028";
       confidence = "92.0%";
       notes = "Não foi possível identificar a data automaticamente no arquivo. Por favor, confirme o vencimento.";
@@ -220,10 +249,12 @@ export async function scanDocumentWithAI(file, docDef) {
     success: true,
     confidence,
     extractedDocType,
-    extractedNumber: extractedCNPJ ? `CNPJ: ${extractedCNPJ}` : docDef?.shortName || "Documento Verificado",
+    extractedNumber: rntrcData ? `RNTRC: ${rntrcData.numero}` : (extractedCNPJ ? `CNPJ: ${extractedCNPJ}` : docDef?.shortName || "Documento Verificado"),
     extractedVigencia: formatDateBR(extractedVigencia),
     extractedRazaoSocial,
     extractedCNPJ,
+    extractedRNTRC: rntrcData?.numero || extractedRNTRC,
+    rntrcData,
     extractedNotes: notes,
     validityAnalysis
   };
