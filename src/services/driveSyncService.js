@@ -302,13 +302,15 @@ export async function syncCarrierToGoogleDrive(carrier, webhookUrl) {
   }
 }
 
+export const OFFICIAL_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyWfv1mwtrLtunYO78fzWhmXGH2CiIC4_RC3l3j4UqV0V9K_XLOlI0UkKQbeIupVkas/exec";
+
 const WEBHOOK_STORAGE_KEY = "LOGSHARE_DRIVE_WEBHOOK_URL_V1";
 
 export function getStoredWebhookUrl() {
   return (
     import.meta.env.VITE_GOOGLE_APPS_SCRIPT_WEBHOOK_URL ||
     localStorage.getItem(WEBHOOK_STORAGE_KEY) ||
-    ""
+    OFFICIAL_WEBHOOK_URL
   );
 }
 
