@@ -171,45 +171,33 @@ export function calculateRiskScore(carrier) {
 
 /**
  * Evaluates carrier status and compliance against strict mandatory document requirements
+ * If ANY mandatory document is missing (not attached) or invalid/expired, status is strictly NAO_APTA.
  */
 export function evaluateCarrier(carrier) {
   const { scoreTotal, breakdown } = calculateRiskScore(carrier);
-  const docs = carrier.documentos || [];
-  
-  const rntrcDoc = docs.find(d => d.id === "doc_rntrc_antt" || d.id === "doc_rntrc");
-  const rctrcDoc = docs.find(d => d.id === "doc_apolice_rctrc" || d.id === "doc_rctrc");
-  const rcdcDoc = docs.find(d => d.id === "doc_apolice_rcdc" || d.id === "doc_rcdc");
-  const cnpjDoc = docs.find(d => d.id === "doc_cartao_cnpj" || d.id === "doc_cnpj");
-
   const isLogShareInsurance = carrier.gestaoRisco?.estipuladoLogShare || carrier.gestaoRisco?.modeloSeguro === 'LOGSHARE_ESTIPULADO';
 
-  // Critical deal breakers
-  const hasCriticalFailure = 
-    rntrcDoc?.status === "IRREGULAR" || 
-    cnpjDoc?.status === "IRREGULAR" ||
-    (!isLogShareInsurance && (rctrcDoc?.status === "IRREGULAR" || rcdcDoc?.status === "IRREGULAR"));
+  const availableSystemDocs = isLogShareInsurance 
+    ? ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId !== "cat_seguros_pgr")
+    : ALL_SYSTEM_DOCUMENTS;
 
-  // REGRA ESTRITA: Na versão APTA COM RESTRIÇÕES NÃO poderá conter nenhum documento obrigatório vencido ou faltando!
-  // Se houver qualquer documento obrigatório faltando ou vencido/irregular/pendente -> NÃO APTA
-  const hasMissingOrExpiredMandatory = docs.some(d => {
-    const isMandatory = d.obrigatorio;
-    if (!isMandatory) return false;
+  const mandatorySystemDocs = availableSystemDocs.filter(d => d.obrigatorio);
 
-    // Se o seguro for estipulado pela LogShare, apólices próprias não bloqueiam
-    if (isLogShareInsurance && (d.id === "doc_apolice_rctrc" || d.id === "doc_apolice_rcdc" || d.id === "doc_quitacao_seguro")) {
-      return false;
-    }
-
-    // Documento obrigatório faltando (sem anexo) ou não válido (pendente / irregular)
-    const isMissing = !d.arquivoBase64 && !d.arquivoNome;
-    const isNotValid = d.status === "IRREGULAR" || d.status === "PENDENTE";
-    return isMissing || isNotValid;
+  // Verifica se QUALQUER documento obrigatório do checklist do sistema não foi anexado ou não está VALIDO
+  const missingOrInvalidMandatoryDocs = mandatorySystemDocs.filter(m => {
+    const uploaded = (carrier.documentos || []).find(d => d.id === m.id);
+    if (!uploaded) return true; // Nunca anexado no portal!
+    const hasFile = !!(uploaded.arquivoBase64 || uploaded.arquivoNome);
+    if (!hasFile) return true; // Sem arquivo anexo real!
+    return uploaded.status !== "VALIDO"; // Pendente ou Irregular!
   });
+
+  const hasMissingOrExpiredMandatory = missingOrInvalidMandatoryDocs.length > 0;
 
   let suggestedStatus = "APTA";
   let riskLevel = RISK_LEVELS.BAIXO;
 
-  if (hasCriticalFailure || hasMissingOrExpiredMandatory || scoreTotal < 600) {
+  if (hasMissingOrExpiredMandatory || scoreTotal < 600) {
     suggestedStatus = "NAO_APTA";
     riskLevel = RISK_LEVELS.ALTO;
   } else if (scoreTotal < 800) {
@@ -225,8 +213,9 @@ export function evaluateCarrier(carrier) {
     breakdown,
     suggestedStatus,
     riskLevel,
-    hasCriticalFailure,
-    hasMissingOrExpiredMandatory
+    hasCriticalFailure: hasMissingOrExpiredMandatory,
+    hasMissingOrExpiredMandatory,
+    missingOrInvalidMandatoryDocs
   };
 }
 

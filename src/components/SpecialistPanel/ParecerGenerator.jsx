@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileCheck, Printer, Copy, Check, Cloud, AlertCircle, ShieldAlert, Sparkles, Send, RefreshCw, AlertTriangle, Info } from 'lucide-react';
-import { STANDARD_RESTRICTIONS, RISK_LEVELS, generateRequiredActions, generateExecutiveSummary } from '../../services/riskEngineService';
+import { STANDARD_RESTRICTIONS, RISK_LEVELS, generateRequiredActions, generateExecutiveSummary, evaluateCarrier } from '../../services/riskEngineService';
 import { formatDateBR } from '../../services/validityCalculator';
 import { evaluateComplianceStandards } from '../../services/complianceStandardsService';
 import LogShareLogo from '../UI/LogShareLogo';
@@ -15,7 +15,11 @@ export default function ParecerGenerator({
   const [copied, setCopied] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
 
-  const status = parecerData.statusFinal || "APTA";
+  const evaluation = evaluateCarrier(carrier);
+  const hasMandatoryPending = evaluation.hasMissingOrExpiredMandatory;
+
+  // Se houver documento obrigatório pendente ou irregular, o status final deve ser NÃO APTA
+  const status = hasMandatoryPending ? "NAO_APTA" : (parecerData.statusFinal || evaluation.suggestedStatus || "APTA");
   const score = carrier.scoreTotal || 0;
 
   const handleStatusChange = (newStatus) => {
@@ -126,6 +130,30 @@ LogShare Tecnologia em Logística & Compliance de Transportes
 
         {/* 1. Seleção de Status Oficial */}
         <div style={{ marginBottom: '1.5rem' }}>
+          {/* Alerta de Bloqueio de Compliance por Documentação Obrigatória */}
+          {hasMandatoryPending && (
+            <div style={{
+              background: '#FEF2F2',
+              border: '1.5px solid #EF4444',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.85rem 1rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.65rem'
+            }}>
+              <AlertCircle size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ fontSize: '0.875rem', color: '#991B1B', display: 'block' }}>
+                  Regra de Compliance: {evaluation.missingOrInvalidMandatoryDocs?.length || 0} documento(s) obrigatório(s) pendente(s) ou irregular(es)
+                </strong>
+                <span style={{ fontSize: '0.78rem', color: '#7F1D1D', display: 'block', marginTop: '2px' }}>
+                  Conforme a política oficial da LogShare, qualquer documento obrigatório não enviado ou vencido <strong>impede a aprovação do transportador</strong>. O parceiro é classificado obrigatoriamente como <strong>NÃO APTA</strong> até que todas as pendências sejam regularizadas.
+                </span>
+              </div>
+            </div>
+          )}
+
           <label className="form-label" style={{ fontSize: '0.9rem' }}>
             1. Selecione o Status Final do Transportador: <span className="required">*</span>
           </label>
@@ -134,7 +162,13 @@ LogShare Tecnologia em Logística & Compliance de Transportes
             <button
               type="button"
               id="status-apta-btn"
-              onClick={() => handleStatusChange('APTA')}
+              onClick={() => {
+                if (hasMandatoryPending) {
+                  alert("Bloqueio de Compliance: Não é permitido aprovar um transportador com documentos obrigatórios faltantes ou vencidos.");
+                  return;
+                }
+                handleStatusChange('APTA');
+              }}
               style={{
                 padding: '1rem',
                 borderRadius: 'var(--radius-md)',
@@ -142,14 +176,16 @@ LogShare Tecnologia em Logística & Compliance de Transportes
                 background: status === 'APTA' ? 'var(--status-apta-bg)' : 'white',
                 color: status === 'APTA' ? 'var(--status-apta-text)' : 'var(--text-primary)',
                 fontWeight: 700,
-                cursor: 'pointer',
+                cursor: hasMandatoryPending ? 'not-allowed' : 'pointer',
+                opacity: hasMandatoryPending ? 0.45 : 1,
                 textAlign: 'center',
                 transition: 'var(--transition-fast)'
               }}
+              title={hasMandatoryPending ? "Bloqueado: Há documentos obrigatórios pendentes" : "Liberação total"}
             >
               <div style={{ fontSize: '1.1rem' }}>🟢 APTA</div>
               <div style={{ fontSize: '0.75rem', fontWeight: 400, marginTop: '4px', opacity: 0.85 }}>
-                Liberação total irrestrita
+                {hasMandatoryPending ? "Bloqueado (Faltam docs)" : "Liberação total irrestrita"}
               </div>
             </button>
 
@@ -157,7 +193,13 @@ LogShare Tecnologia em Logística & Compliance de Transportes
             <button
               type="button"
               id="status-restricoes-btn"
-              onClick={() => handleStatusChange('APTA_COM_RESTRICOES')}
+              onClick={() => {
+                if (hasMandatoryPending) {
+                  alert("Bloqueio de Compliance: A modalidade APTA COM RESTRIÇÕES exige 100% dos documentos obrigatórios válidos. Regularize as pendências documentais primeiro.");
+                  return;
+                }
+                handleStatusChange('APTA_COM_RESTRICOES');
+              }}
               style={{
                 padding: '1rem',
                 borderRadius: 'var(--radius-md)',
@@ -165,14 +207,16 @@ LogShare Tecnologia em Logística & Compliance de Transportes
                 background: status === 'APTA_COM_RESTRICOES' ? 'var(--status-restricoes-bg)' : 'white',
                 color: status === 'APTA_COM_RESTRICOES' ? 'var(--status-restricoes-text)' : 'var(--text-primary)',
                 fontWeight: 700,
-                cursor: 'pointer',
+                cursor: hasMandatoryPending ? 'not-allowed' : 'pointer',
+                opacity: hasMandatoryPending ? 0.45 : 1,
                 textAlign: 'center',
                 transition: 'var(--transition-fast)'
               }}
+              title={hasMandatoryPending ? "Bloqueado: Exige 100% dos documentos obrigatórios válidos" : "Requer travas operacionais"}
             >
               <div style={{ fontSize: '1.1rem' }}>🟡 APTA C/ RESTRIÇÕES</div>
               <div style={{ fontSize: '0.75rem', fontWeight: 400, marginTop: '4px', opacity: 0.85 }}>
-                Requer travas operacionais
+                {hasMandatoryPending ? "Bloqueado (Faltam docs)" : "Requer travas operacionais"}
               </div>
             </button>
 
@@ -190,12 +234,13 @@ LogShare Tecnologia em Logística & Compliance de Transportes
                 fontWeight: 700,
                 cursor: 'pointer',
                 textAlign: 'center',
-                transition: 'var(--transition-fast)'
+                transition: 'var(--transition-fast)',
+                boxShadow: hasMandatoryPending && status === 'NAO_APTA' ? '0 0 0 2px #EF4444' : undefined
               }}
             >
               <div style={{ fontSize: '1.1rem' }}>🔴 NÃO APTA</div>
               <div style={{ fontSize: '0.75rem', fontWeight: 400, marginTop: '4px', opacity: 0.85 }}>
-                Bloqueio na plataforma
+                {hasMandatoryPending ? "Status Obrigatório por Compliance" : "Bloqueio na plataforma"}
               </div>
             </button>
           </div>
