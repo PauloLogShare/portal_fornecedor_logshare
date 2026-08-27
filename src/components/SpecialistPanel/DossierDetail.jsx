@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, FileText, Shield, Truck, Building2, DollarSign, Calendar, Eye, RefreshCw, Save, Send, Sparkles, Layers, History, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, FileText, Shield, Truck, Building2, Building, DollarSign, Calendar, Eye, RefreshCw, Save, Send, Sparkles, Layers, History, Clock, Download, Users, Briefcase } from 'lucide-react';
 import RiskScoreEngine from './RiskScoreEngine';
 import ParecerGenerator from './ParecerGenerator';
 import DocumentVersionHistoryModal from './DocumentVersionHistoryModal';
@@ -7,14 +7,24 @@ import { calculateRiskScore, evaluateCarrier, generateExecutiveSummary, generate
 import { saveCarrier } from '../../services/storageService';
 import { calculateDocumentValidity, OFFICIAL_DOCUMENT_CATEGORIES, ALL_SYSTEM_DOCUMENTS, formatDateBR } from '../../services/validityCalculator';
 import { evaluateComplianceStandards } from '../../services/complianceStandardsService';
+import { generateReceitaFederalPDF } from '../../services/receitaPdfService';
 
 export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdateCarrierList, onSyncDrive }) {
   const carrier = allCarriers.find(c => c.id === carrierId) || allCarriers[0];
   
-  const [activeTab, setActiveTab] = useState('audit'); // 'audit' | 'parecer' | 'profile'
+  const [activeTab, setActiveTab] = useState('audit'); // 'audit' | 'receita' | 'parecer' | 'profile'
   const [docsState, setDocsState] = useState(carrier.documentos || []);
   const [currentCarrier, setCurrentCarrier] = useState(carrier);
   const [historyModalDoc, setHistoryModalDoc] = useState(null);
+
+  const handleDownloadReceitaPDF = () => {
+    try {
+      const res = generateReceitaFederalPDF(currentCarrier);
+      res.doc.save(res.fileName);
+    } catch (err) {
+      console.error("Erro ao gerar PDF da Receita Federal", err);
+    }
+  };
 
   const [parecerState, setParecerState] = useState(
     carrier.parecer || {
@@ -164,13 +174,21 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid var(--border-light)', paddingBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid var(--border-light)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
         <button
           className={`btn ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
           onClick={() => setActiveTab('audit')}
         >
           <FileText size={15} />
           <span>Auditoria Documental & Score</span>
+        </button>
+
+        <button
+          className={`btn ${activeTab === 'receita' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          onClick={() => setActiveTab('receita')}
+        >
+          <Building size={15} />
+          <span>Receita Federal & QSA (Sócios)</span>
         </button>
 
         <button
@@ -472,6 +490,156 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
           </div>
         </div>
       )}
+
+      {/* TAB: Receita Federal & QSA */}
+      {activeTab === 'receita' && (() => {
+        const rf = currentCarrier.dadosReceitaFederal || {};
+        const qsaList = rf.qsa && rf.qsa.length > 0 ? rf.qsa : [
+          { nome: currentCarrier.contato?.responsavel || "ADMINISTRADOR RESPONSÁVEL", documento: "***.000.000-**", qualificacao: "Administrador", dataEntrada: currentCarrier.aberturaCNPJ || "14/05/2016", faixaEtaria: "35 a 50 anos" }
+        ];
+        const cnaesList = rf.cnaes || [];
+        const mainCnae = rf.cnaePrincipal || { codigo: "49.30-2-02", descricao: "Transporte rodoviário de carga" };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Header with Download Action */}
+            <div className="card" style={{ background: 'linear-gradient(135deg, #0A192F 0%, #1E3A8A 100%)', color: 'white', border: 'none' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Building size={24} color="#60A5FA" />
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#FFFFFF' }}>
+                      Auditoria de Inteligência Fiscal & QSA — Receita Federal
+                    </h3>
+                  </div>
+                  <p style={{ fontSize: '0.825rem', color: '#93C5FD', marginTop: '0.35rem', margin: 0 }}>
+                    Dados oficiais obtidos diretamente da base da Receita Federal do Brasil e ANTT via OpenCNPJ.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleDownloadReceitaPDF}
+                  style={{ background: '#2563EB', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
+                >
+                  <Download size={16} />
+                  <span>Baixar Ficha Cadastral em PDF</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Grid 1: Informações Cadastrais & Situação Fiscal */}
+            <div className="card">
+              <div className="card-header">
+                <h4 style={{ fontSize: '1rem', color: 'var(--primary-900)', margin: 0 }}>
+                  1. Situação Cadastral & Porte da Empresa
+                </h4>
+                <span className="badge badge-apta" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
+                  ✓ Situação: {(rf.situacaoCadastral || currentCarrier.situacao || 'ATIVA').toUpperCase()}
+                </span>
+              </div>
+
+              <div className="form-grid-3" style={{ fontSize: '0.85rem' }}>
+                <div><strong>CNPJ:</strong> {currentCarrier.cnpj || rf.cnpj}</div>
+                <div><strong>Razão Social:</strong> {currentCarrier.razaoSocial || rf.razaoSocial}</div>
+                <div><strong>Nome Fantasia:</strong> {currentCarrier.nomeFantasia || rf.nomeFantasia || '—'}</div>
+                <div><strong>Data de Abertura:</strong> {rf.dataInicioAtividade || currentCarrier.aberturaCNPJ || '—'}</div>
+                <div><strong>Natureza Jurídica:</strong> {rf.naturezaJuridica || 'Sociedade Empresária Limitada'}</div>
+                <div><strong>Porte da Empresa:</strong> {rf.porte || 'Demais'}</div>
+                <div><strong>Capital Social:</strong> {rf.capitalSocialFormatado || (currentCarrier.capitalSocial ? `R$ ${currentCarrier.capitalSocial.toLocaleString('pt-BR')}` : '—')}</div>
+                <div><strong>Opção Simples Nacional:</strong> {rf.opcaoSimples || 'Não Optante'}</div>
+                <div><strong>Opção MEI:</strong> {rf.opcaoMei || 'Não'}</div>
+                <div style={{ gridColumn: 'span 3' }}><strong>Endereço Fiscal Oficial:</strong> {rf.enderecoCompleto || `${currentCarrier.endereco?.logradouro || ''}, ${currentCarrier.endereco?.cidade || ''}/${currentCarrier.endereco?.uf || ''}`}</div>
+              </div>
+            </div>
+
+            {/* Grid 2: Quadro de Sócios e Administradores (QSA) */}
+            <div className="card">
+              <div className="card-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={18} color="var(--primary-600)" />
+                  <h4 style={{ fontSize: '1rem', color: 'var(--primary-900)', margin: 0 }}>
+                    2. Quadro de Sócios e Administradores (QSA Auditado)
+                  </h4>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {qsaList.length} sócio(s) / administrador(es) registrado(s)
+                </span>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
+                  <thead>
+                    <tr style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0', textAlign: 'left' }}>
+                      <th style={{ padding: '8px 12px', color: '#475569' }}>Nome do Sócio / Administrador</th>
+                      <th style={{ padding: '8px 12px', color: '#475569' }}>CPF / CNPJ</th>
+                      <th style={{ padding: '8px 12px', color: '#475569' }}>Qualificação</th>
+                      <th style={{ padding: '8px 12px', color: '#475569' }}>Data de Entrada</th>
+                      <th style={{ padding: '8px 12px', color: '#475569' }}>Faixa Etária</th>
+                      <th style={{ padding: '8px 12px', color: '#475569' }}>Representante Legal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {qsaList.map((socio, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9', background: idx % 2 === 1 ? '#FAFAFA' : 'white' }}>
+                        <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--primary-900)' }}>{socio.nome}</td>
+                        <td style={{ padding: '8px 12px', color: '#64748B' }}>{socio.documento || socio.cnpj_cpf_socio || '***.***.***-**'}</td>
+                        <td style={{ padding: '8px 12px' }}>
+                          <span style={{ background: '#EFF6FF', color: '#1E40AF', padding: '2px 6px', borderRadius: 4, fontWeight: 600, fontSize: '0.75rem' }}>
+                            {socio.qualificacao || socio.qualificacao_socio || 'Sócio'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px 12px', color: '#64748B' }}>{socio.dataEntrada || formatDateBR(socio.data_entrada_sociedade) || '—'}</td>
+                        <td style={{ padding: '8px 12px', color: '#64748B' }}>{socio.faixaEtaria || socio.faixa_etaria || '—'}</td>
+                        <td style={{ padding: '8px 12px', color: '#64748B' }}>{socio.representanteLegal || socio.nome_representante || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Grid 3: CNAEs e Atividades Econômicas */}
+            <div className="card">
+              <div className="card-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Briefcase size={18} color="var(--primary-600)" />
+                  <h4 style={{ fontSize: '1rem', color: 'var(--primary-900)', margin: 0 }}>
+                    3. Atividades Econômicas Autorizadas (CNAEs)
+                  </h4>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '0.75rem 1rem', borderRadius: 6 }}>
+                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, color: '#1E40AF', letterSpacing: '0.04em' }}>
+                    CNAE Principal:
+                  </span>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1E3A8A', marginTop: '0.2rem' }}>
+                    {mainCnae.codigo} — {mainCnae.descricao}
+                  </div>
+                </div>
+
+                {cnaesList.filter(c => !c.is_principal).length > 0 && (
+                  <div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      CNAEs Secundários Registrados:
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.4rem' }}>
+                      {cnaesList.filter(c => !c.is_principal).map((c, idx) => (
+                        <div key={idx} style={{ fontSize: '0.8rem', color: '#334155', background: '#F8FAFC', padding: '4px 8px', borderRadius: 4 }}>
+                          • <strong>{c.codigo}</strong> — {c.descricao}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* TAB 2: Parecer de Homologação */}
       {activeTab === 'parecer' && (

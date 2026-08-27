@@ -63,6 +63,10 @@ export default function Step1Cadastral({ formData, updateFormData, errors }) {
       if (res.razaoSocial) handleChange('razaoSocial', res.razaoSocial);
       if (res.nomeFantasia) handleChange('nomeFantasia', res.nomeFantasia);
       if (res.aberturaCNPJ) handleChange('aberturaCNPJ', res.aberturaCNPJ);
+      if (res.capitalSocial) handleChange('capitalSocial', res.capitalSocial);
+      if (res.dadosReceitaFederal) {
+        handleChange('dadosReceitaFederal', res.dadosReceitaFederal);
+      }
       if (res.endereco) {
         updateFormData('endereco', {
           ...formData.endereco,
