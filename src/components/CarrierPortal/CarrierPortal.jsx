@@ -96,16 +96,45 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
     }));
   };
 
-  const validateCurrentStep = () => {
+  const validateStep1 = () => {
     const errs = {};
-    if (currentStep === 1) {
-      if (!formData.razaoSocial?.trim()) errs.razaoSocial = "Razão Social é obrigatória.";
-      if (!formData.cnpj?.trim()) errs.cnpj = "CNPJ é obrigatório.";
-      if (!formData.endereco?.cidade?.trim()) errs.cidade = "Cidade é obrigatória.";
-      if (!formData.contato?.email?.trim()) errs.email = "E-mail corporativo é obrigatório.";
-    }
+    if (!formData.razaoSocial?.trim()) errs.razaoSocial = "Razão Social é obrigatória.";
+    if (!formData.cnpj?.trim()) errs.cnpj = "CNPJ é obrigatório.";
+    if (!formData.endereco?.cidade?.trim()) errs.cidade = "Cidade é obrigatória.";
+    if (!formData.contato?.email?.trim()) errs.email = "E-mail corporativo é obrigatório.";
+    if (!formData.contato?.responsavel?.trim()) errs.responsavel = "Nome do responsável é obrigatório.";
+    if (!formData.contato?.telefone?.trim()) errs.telefone = "Telefone de contato é obrigatório.";
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
+  };
+
+  const validateCurrentStep = () => {
+    if (currentStep === 1) {
+      return validateStep1();
+    }
+    return true;
+  };
+
+  const handleStepClick = (targetStepId) => {
+    if (targetStepId === currentStep) return;
+
+    // Se a Etapa 1 (Cadastral) não estiver preenchida, é estritamente proibido pular para as etapas 2, 3, 4 ou 5
+    if (targetStepId > 1 && !validateStep1()) {
+      setCurrentStep(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (targetStepId <= currentStep) {
+      setCurrentStep(targetStepId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      if (validateCurrentStep()) {
+        setCurrentStep(targetStepId);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
   };
 
   const handleNext = () => {
@@ -254,10 +283,17 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
                   <div
                     key={step.id}
                     className={`step-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${hasError ? 'has-error' : ''}`}
-                    onClick={() => {
-                      setCurrentStep(step.id);
+                    onClick={() => handleStepClick(step.id)}
+                    style={{
+                      cursor: (step.id === 1 || !isStep1Missing) ? 'pointer' : 'not-allowed'
                     }}
-                    title={step.id === 4 && isStep4Missing ? `${missingMandatoryDocs.length} documento(s) obrigatório(s) pendente(s)` : step.label}
+                    title={
+                      step.id > 1 && isStep1Missing 
+                        ? "Preencha os dados cadastrais obrigatórios da Etapa 1 para prosseguir"
+                        : step.id === 4 && isStep4Missing 
+                        ? `${missingMandatoryDocs.length} documento(s) obrigatório(s) pendente(s)` 
+                        : step.label
+                    }
                   >
                     <div className="step-circle">
                       {hasError ? (
