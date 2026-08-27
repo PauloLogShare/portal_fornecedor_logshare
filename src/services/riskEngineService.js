@@ -18,6 +18,10 @@ export const STANDARD_RESTRICTIONS = [
 /**
  * Calculates the Risk Score breakdown (0 to 1000 points) based on carrier information and document audit
  */
+/**
+ * Calculates the Risk Score breakdown (0 to 1000 points) based on carrier information and document audit
+ * Strictly verifies attached documents without granting default points for missing certificates.
+ */
 export function calculateRiskScore(carrier) {
   let documental = 0;
   let financeiro = 0;
@@ -27,90 +31,122 @@ export function calculateRiskScore(carrier) {
   const docs = carrier.documentos || [];
   const isLogShareInsurance = carrier.gestaoRisco?.estipuladoLogShare || carrier.gestaoRisco?.modeloSeguro === 'LOGSHARE_ESTIPULADO';
 
-  // 1. Regularidade Documental & Fiscal (0 - 300 pts)
-  const rntrcDoc = docs.find(d => d.id === "doc_rntrc_antt" || d.id === "doc_rntrc");
-  if (rntrcDoc?.status === "VALIDO") documental += 50;
+  // Helper para checar se documento foi efetivamente anexado e está válido
+  const isDocValidAndAttached = (docId) => {
+    const d = docs.find(item => item.id === docId);
+    if (!d) return false;
+    const hasFile = !!(d.arquivoBase64 || d.arquivoNome);
+    return hasFile && d.status === "VALIDO";
+  };
 
-  const rctrcDoc = docs.find(d => d.id === "doc_apolice_rctrc" || d.id === "doc_rctrc");
-  if (rctrcDoc?.status === "VALIDO" || isLogShareInsurance) documental += 40;
+  // 1. Regularidade Documental & Habilitação (0 - 300 pts)
+  // RNTRC ativo e auditado: 60 pts
+  if (isDocValidAndAttached("doc_rntrc_antt") || isDocValidAndAttached("doc_rntrc")) {
+    documental += 60;
+  }
 
-  const rcdcDoc = docs.find(d => d.id === "doc_apolice_rcdc" || d.id === "doc_rcdc");
-  if (rcdcDoc?.status === "VALIDO" || isLogShareInsurance) documental += 40;
+  // Cartão CNPJ auditado: 40 pts
+  if (isDocValidAndAttached("doc_cartao_cnpj") || isDocValidAndAttached("doc_cnpj")) {
+    documental += 40;
+  }
 
-  const cnpjDoc = docs.find(d => d.id === "doc_cartao_cnpj" || d.id === "doc_cnpj");
-  if (cnpjDoc?.status === "VALIDO") documental += 35;
+  // Contrato Social Consolidado auditado: 40 pts
+  if (isDocValidAndAttached("doc_contrato_social") || isDocValidAndAttached("doc_contrato")) {
+    documental += 40;
+  }
 
-  const quitacaoDoc = docs.find(d => d.id === "doc_quitacao_seguro" || d.id === "doc_comprovante_pagamento_seguro");
-  if (quitacaoDoc?.status === "VALIDO" || isLogShareInsurance) documental += 25;
+  // CND Federal / PGFN auditada: 35 pts
+  if (isDocValidAndAttached("doc_cnd_federal")) {
+    documental += 35;
+  }
 
-  const pgrDoc = docs.find(d => d.id === "doc_pgr_gerenciamento_risco" || d.id === "doc_pgr");
-  if (pgrDoc?.status === "VALIDO") documental += 25;
+  // CNDT Trabalhista auditada: 30 pts
+  if (isDocValidAndAttached("doc_cndt_trabalhista") || isDocValidAndAttached("doc_cndt")) {
+    documental += 30;
+  }
 
-  const cndFederalDoc = docs.find(d => d.id === "doc_cnd_federal");
-  if (cndFederalDoc?.status === "VALIDO") documental += 20;
+  // CRF FGTS auditado: 25 pts
+  if (isDocValidAndAttached("doc_crf_fgts") || isDocValidAndAttached("doc_fgts")) {
+    documental += 25;
+  }
 
-  const cndtDoc = docs.find(d => d.id === "doc_cndt_trabalhista" || d.id === "doc_cndt");
-  if (cndtDoc?.status === "VALIDO") documental += 20;
+  // CNDs Estadual e Municipal auditadas: 30 pts (15 cada)
+  if (isDocValidAndAttached("doc_cnd_estadual")) documental += 15;
+  if (isDocValidAndAttached("doc_cnd_municipal")) documental += 15;
 
-  const crfDoc = docs.find(d => d.id === "doc_crf_fgts" || d.id === "doc_fgts");
-  if (crfDoc?.status === "VALIDO") documental += 15;
-
-  const contratoDoc = docs.find(d => d.id === "doc_contrato_social" || d.id === "doc_contrato");
-  if (contratoDoc?.status === "VALIDO") documental += 10;
-
-  const frotaDoc = docs.find(d => d.id === "doc_relacao_frota_crlv");
-  const hasFrotaDeclarada = ((carrier.perfilOperacional?.frotaPropria || 0) + (carrier.perfilOperacional?.frotaAgregada || 0)) > 0;
-  if (frotaDoc?.status === "VALIDO" || hasFrotaDeclarada) documental += 10;
-
-  const cnhDoc = docs.find(d => d.id === "doc_cnh_motoristas_toxicol" || d.id === "doc_cnh_toxicologico");
-  const hasGR = carrier.gestaoRisco?.gerenciadoraRisco && carrier.gestaoRisco.gerenciadoraRisco !== "Nenhuma" && carrier.gestaoRisco.gerenciadoraRisco !== "Nenhuma cadastrada";
-  if (cnhDoc?.status === "VALIDO" || hasGR) documental += 10;
+  // Seguros no Documental: só pontua se apólice própria for válida OU se escolheu LogShare com cadastro validado
+  if (isLogShareInsurance) {
+    documental += 40; // Pontuação pelo modelo LogShare garantido
+  } else {
+    if (isDocValidAndAttached("doc_apolice_rctrc") || isDocValidAndAttached("doc_rctrc")) documental += 20;
+    if (isDocValidAndAttached("doc_apolice_rcdc") || isDocValidAndAttached("doc_rcdc")) documental += 20;
+  }
 
   documental = Math.min(300, documental);
 
-  // 2. Saúde Financeira & Tempo de Atividade (0 - 300 pts)
+  // 2. Saúde Financeira, Fiscal & Tempo de Mercado (0 - 250 pts)
+  // Tempo de Atividade (0 - 80 pts)
   if (carrier.aberturaCNPJ) {
     const anos = 2026 - new Date(carrier.aberturaCNPJ).getFullYear();
-    if (anos >= 5) financeiro += 100;
-    else if (anos >= 2) financeiro += 70;
-    else financeiro += 40;
-  } else {
-    financeiro += 50;
+    if (anos >= 5) financeiro += 80;
+    else if (anos >= 2) financeiro += 50;
+    else if (anos >= 1) financeiro += 30;
   }
 
+  // Capital Social Registrado (0 - 80 pts)
   const capital = carrier.capitalSocial || 0;
-  if (capital >= 500000) financeiro += 100;
-  else if (capital >= 100000) financeiro += 70;
-  else financeiro += 40;
+  if (capital >= 500000) financeiro += 80;
+  else if (capital >= 100000) financeiro += 50;
+  else if (capital >= 30000) financeiro += 30;
 
-  const fiscalNegativa = (cndFederalDoc?.status === "VALIDO") && (cndtDoc?.status === "VALIDO") && (crfDoc?.status === "VALIDO");
-  if (fiscalNegativa) financeiro += 100;
-  else financeiro += 50;
+  // Regularidade Fiscal Plena comprovada por certidões anexadas (0 - 90 pts)
+  const hasCndFed = isDocValidAndAttached("doc_cnd_federal");
+  const hasCndt = isDocValidAndAttached("doc_cndt_trabalhista") || isDocValidAndAttached("doc_cndt");
+  const hasFgts = isDocValidAndAttached("doc_crf_fgts") || isDocValidAndAttached("doc_fgts");
+  
+  if (hasCndFed && hasCndt && hasFgts) {
+    financeiro += 90;
+  } else if (hasCndFed || hasCndt || hasFgts) {
+    financeiro += 30;
+  }
+  // Se nenhuma CND foi anexada, ganha 0 pontos fiscais (sem pontuação presumida)
 
-  financeiro = Math.min(300, financeiro);
+  financeiro = Math.min(250, financeiro);
 
-  // 3. Gestão de Risco & Seguros (0 - 200 pts)
+  // 3. Gerenciamento de Risco, PGR & Coberturas (0 - 250 pts)
+  // Cobertura Securitária (LMG ou Estipulação LogShare): 0 - 120 pts
   const lmg = carrier.gestaoRisco?.lmg || 0;
-  if (isLogShareInsurance || lmg >= 1000000) gerenciamentoRisco += 100;
-  else if (lmg >= 500000) gerenciamentoRisco += 70;
-  else if (lmg >= 200000) gerenciamentoRisco += 40;
-
-  if (carrier.gestaoRisco?.gerenciadoraRisco && carrier.gestaoRisco.gerenciadoraRisco !== "Nenhuma" && carrier.gestaoRisco.gerenciadoraRisco !== "Nenhuma cadastrada") {
-    gerenciamentoRisco += 50;
+  if (isLogShareInsurance) {
+    gerenciamentoRisco += 120;
+  } else if (lmg >= 1000000 && isDocValidAndAttached("doc_apolice_rctrc")) {
+    gerenciamentoRisco += 120;
+  } else if (lmg >= 500000 && isDocValidAndAttached("doc_apolice_rctrc")) {
+    gerenciamentoRisco += 80;
+  } else if (lmg >= 200000 && isDocValidAndAttached("doc_apolice_rctrc")) {
+    gerenciamentoRisco += 40;
   }
 
-  if (carrier.gestaoRisco?.pgrProprio || pgrDoc?.status === "VALIDO") {
-    gerenciamentoRisco += 50;
+  // Gerenciadora de Risco homologada (0 - 70 pts)
+  const grNome = carrier.gestaoRisco?.gerenciadoraRisco;
+  if (grNome && grNome !== "Nenhuma" && grNome !== "Nenhuma cadastrada") {
+    gerenciamentoRisco += 70;
   }
 
-  gerenciamentoRisco = Math.min(200, gerenciamentoRisco);
+  // PGR - Plano de Gerenciamento de Risco (0 - 60 pts)
+  if (isLogShareInsurance || isDocValidAndAttached("doc_pgr_gerenciamento_risco") || isDocValidAndAttached("doc_pgr_risco") || isDocValidAndAttached("doc_pgr")) {
+    gerenciamentoRisco += 60;
+  }
 
-  // 4. Capacidade Operacional & Rastreamento (0 - 200 pts)
+  gerenciamentoRisco = Math.min(250, gerenciamentoRisco);
+
+  // 4. Capacidade Operacional, Frota & Telemetria (0 - 200 pts)
+  // Frota Operacional (0 - 100 pts)
   const totalFrota = (carrier.perfilOperacional?.frotaPropria || 0) + (carrier.perfilOperacional?.frotaAgregada || 0);
   if (totalFrota >= 20) operacional += 100;
   else if (totalFrota >= 5) operacional += 70;
   else if (totalFrota >= 1) operacional += 40;
 
+  // Tecnologias de Rastreamento & Telemetria (0 - 100 pts)
   const tecnologias = carrier.perfilOperacional?.tecnologiaRastreamento || [];
   if (tecnologias.length >= 2 || tecnologias.some(t => t.toLowerCase().includes('duplo') || t.toLowerCase().includes('isca'))) {
     operacional += 100;

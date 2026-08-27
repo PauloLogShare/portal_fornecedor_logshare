@@ -83,11 +83,11 @@ export default function RiskScoreEngine({ scoreTotal, breakdown }) {
               2. Saúde Financeira, Fiscal & Tempo de Mercado
             </span>
             <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-              {b.financeiro} / 300 pts
+              {b.financeiro} / 250 pts
             </span>
           </div>
           <div style={{ height: '8px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-            <div style={{ width: `${(b.financeiro / 300) * 100}%`, height: '100%', background: '#10B981', borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease' }} />
+            <div style={{ width: `${(b.financeiro / 250) * 100}%`, height: '100%', background: '#10B981', borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease' }} />
           </div>
         </div>
 
@@ -115,11 +115,11 @@ export default function RiskScoreEngine({ scoreTotal, breakdown }) {
               4. Capacidade Operacional, Frota & Telemetria
             </span>
             <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-              {b.operacional} / 150 pts
+              {b.operacional} / 200 pts
             </span>
           </div>
           <div style={{ height: '8px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-            <div style={{ width: `${(b.operacional / 150) * 100}%`, height: '100%', background: '#8B5CF6', borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease' }} />
+            <div style={{ width: `${(b.operacional / 200) * 100}%`, height: '100%', background: '#8B5CF6', borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease' }} />
           </div>
         </div>
       </div>
