@@ -12,9 +12,9 @@ export const RISK_LEVELS = {
 export const STANDARD_RESTRICTIONS = [
   "Alocação condicionada à análise caso a caso dos requisitos do cliente e valor da carga",
   "Teto de valor de carga fixado em até R$ 300.000,00 por viagem",
-  "Duplo rastreamento obrigatório (telemetria primária + redundância móvel/isca)",
+  "Rastreamento obrigatório",
   "Obrigatoriedade de validação de licenças sanitárias/ambientais conforme produto transportado (AFE, VISA, IBAMA)",
-  "Obrigatoriedade de liberação de motoristas na Gerenciadora de Risco com antecedência mínima de 4h",
+  "Consulta prévia de motoristas e equipamento na Gerenciadora de Risco (12h)",
   "Exigência de apresentação de comprovante de averbação eletrônica a cada viagem realizada"
 ];
 
@@ -209,7 +209,7 @@ export function generateExecutiveSummary(carrier, status, score) {
   }
 
   if (status === "APTA_COM_RESTRICOES") {
-    return `Transportadora ${carrier.razaoSocial} avaliada com score intermediário (${score}/1000 pontos) e nível de risco moderado. Todos os documentos obrigatórios encontram-se válidos e regulares, com liberação operacional aprovada sob travas de segurança (Teto de carga de R$ 300.000,00 por viagem e Duplo rastreamento obrigatório). DIRETRIZ DE ALOCAÇÃO: Os casos com restrições serão analisados e validados caso a caso pela LogShare, a depender das exigências específicas do cliente/embarcador em questão, das licenças regulatórias necessárias para a rota/produto (ex: AFE, VISA, IBAMA) e do valor específico da carga.`;
+    return `Transportadora ${carrier.razaoSocial} avaliada com score intermediário (${score}/1000 pontos) e nível de risco moderado. Todos os documentos obrigatórios encontram-se válidos e regulares, com liberação operacional aprovada sob travas de segurança (Teto de carga de R$ 300k por viagem e Rastreamento obrigatório). DIRETRIZ DE ALOCAÇÃO: Os casos com restrições serão analisados e validados caso a caso pela LogShare, a depender das exigências específicas do cliente/embarcador em questão, das licenças regulatórias necessárias para a rota/produto (ex: AFE, VISA, IBAMA) e do valor específico da carga.`;
   }
 
   return `Após auditoria técnica de homologação, a transportadora ${carrier.razaoSocial} foi classificada como NÃO APTA (Score ${score}/1000 pontos). Foram identificados documentos obrigatórios faltantes/vencidos ou impeditivos regulatórios críticos. Conforme política de compliance, qualquer documento obrigatório pendente ou vencido impede a operação na plataforma até regularização formal.`;

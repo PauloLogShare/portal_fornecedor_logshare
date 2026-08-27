@@ -154,9 +154,9 @@ export const INITIAL_CARRIERS = [
       especialistaNome: "Especialista em Homologação LogShare",
       resumoExecutivo: "Transportadora de médio porte com foco regional. Cadastro aprovado com ressalvas devido ao limite de apólice (LMG R$ 400.000,00) e pendência na renovação da CNDT.",
       restricoesOperacionais: [
-        "Teto de valor de carga fixado em R$ 350.000,00 por embarque",
-        "Vedado o transporte de cargas visadas (eletrônicos e defensivos agrícolas)",
-        "Obrigatoriedade de cadastro de motoristas na OpenTech com antecedência mínima de 4h"
+        "Teto de valor de carga fixado em R$ 300.000,00 por viagem",
+        "Rastreamento obrigatório",
+        "Consulta prévia de motoristas e equipamento na Gerenciadora de Risco (12h)"
       ],
       acoesRequeridas: "1. Enviar CNDT atualizada em até 15 dias corridos.\n2. Para cargas acima de R$ 350 mil, apresentar endosso de apólice com ampliação do LMG.",
       observacoesInternas: "Operação restrita a cargas secas e rotas pavimentadas."

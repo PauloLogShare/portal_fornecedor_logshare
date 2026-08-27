@@ -275,7 +275,7 @@ export default function POPHomologacaoModal({ isOpen, onClose }) {
               <td><span class="tag tag-restricoes">APTA COM RESTRIÇÕES</span></td>
               <td><strong>600 a 799 pontos</strong></td>
               <td>
-                <strong>Operação com travas:</strong> Teto de carga de R$ 300k por viagem e Duplo rastreamento obrigatório. (Exige 100% dos documentos obrigatórios válidos).<br>
+                <strong>Operação com travas:</strong> Teto de carga de R$ 300k por viagem e Rastreamento obrigatório. (Exige 100% dos documentos obrigatórios válidos).<br>
                 <em style="color: #92400E; font-size: 8.5pt;">* Diretriz de Alocação: Os casos de transportadores com restrições serão analisados a depender do cliente em questão, licenças necessárias e valor da carga.</em>
               </td>
             </tr>
@@ -707,8 +707,8 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
                   </p>
                   <ul style={{ fontSize: '0.75rem', color: '#78350F', paddingLeft: '1.1rem', margin: '0 0 0.5rem 0' }}>
                     <li>Teto de carga de R$ 300k por viagem.</li>
-                    <li>Duplo rastreamento obrigatório (telemetria + isca).</li>
-                    <li>Consulta prévia de motoristas na Gerenciadora de Risco (4h).</li>
+                    <li>Rastreamento obrigatório.</li>
+                    <li>Consulta prévia de motoristas e equipamento na Gerenciadora de Risco (12h).</li>
                   </ul>
                   <div style={{ background: 'rgba(245, 158, 11, 0.15)', borderLeft: '3px solid #F59E0B', padding: '5px 8px', borderRadius: '0 4px 4px 0', fontSize: '0.72rem', color: '#92400E' }}>
                     <strong>Diretriz de Alocação:</strong> Os casos com restrições serão analisados a depender do cliente em questão, licenças necessárias e valor da carga.

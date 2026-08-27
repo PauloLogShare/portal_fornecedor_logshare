@@ -121,8 +121,8 @@ Com base no Score Global de Risco e na verificação de impeditivos críticos:
   2. **Das Licenças Necessárias**: Comprovação de licenças sanitárias (AFE/VISA), ambientais (CTF/IBAMA) ou transporte de produtos perigosos específicas para a rota e tipo de carga.
   3. **Do Valor da Carga & Travas Operacionais Fixadas**:
      - **Teto de Carga**: Fixado em até **R$ 300.000,00 por viagem**.
-     - **Duplo Rastreamento Obrigatório**: Telemetria primária com redundância móvel / isca de carga.
-     - **Consulta Prévia GR**: Liberação de motorista na Gerenciadora de Risco com no mínimo 4h de antecedência.
+     - **Rastreamento Obrigatório**: Telemetria / rastreamento ativo do veículo.
+     - **Consulta Prévia GR**: Consulta prévia de motoristas e equipamento na Gerenciadora de Risco (12h).
 
 ### 🔴 3. NÃO APTA (BLOQUEADA / RECUSADA)
 - **Critério**: Score Global < 600 pontos OU **qualquer documento obrigatório vencido, irregular ou faltando** OU ocorrência de qualquer um dos **Impeditivos Críticos (Dealbreakers)**.
