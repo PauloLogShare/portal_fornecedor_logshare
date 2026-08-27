@@ -249,10 +249,12 @@ export const ALL_SYSTEM_DOCUMENTS = [
   {
     id: "doc_pgr_risco",
     categoryId: "cat_seguros_pgr",
-    nome: "PGR – Plano de Gerenciamento de Risco (gerenciadora, tecnologia de rastreamento, regras de escolta)",
+    nome: "PGR – Plano de Gerenciamento de Risco (gerenciadora, tecnologia de rastreamento)",
     shortName: "PGR - Gerenciamento de Risco",
-    obrigatorio: true,
-    hint: "Documento oficial do PGR com regras de parada, rotas, tecnologias de rastreamento e escolta armada."
+    obrigatorio: false,
+    requeridoLogShare: true,
+    condicionalText: "Requerido se PGR próprio; dispensado se adotar PGR LogShare",
+    hint: "Documento oficial do PGR com regras de parada, rotas e tecnologias de rastreamento."
   },
   {
     id: "doc_plano_contingencia",

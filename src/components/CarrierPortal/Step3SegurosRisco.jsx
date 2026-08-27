@@ -403,135 +403,135 @@ export default function Step3SegurosRisco({ formData, updateFormData }) {
           </div>
         </div>
 
-        {/* 3.3 Upload de Documentos Requeridos de Seguro e PGR */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div>
-              <h3 style={{ fontSize: '1rem', color: 'var(--primary-900)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FileCheck size={18} color="#0056D2" />
-                <span>3.3 Documentos Requeridos de Seguro & PGR</span>
-              </h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                {isEstipuladoLogShare
-                  ? "Como a operação será coberta pela Apólice Mestre LogShare, o envio de apólices próprias é opcional/requerido para histórico. O PGR é requerido."
-                  : "Anexe os arquivos digitais de suas apólices, quitação e PGR. Leitura OCR automática ativa."}
-              </p>
+        {/* 3.3 Upload de Documentos Requeridos de Seguro e PGR (Apenas quando Apólices Próprias da Transportadora) */}
+        {!isEstipuladoLogShare && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', color: 'var(--primary-900)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileCheck size={18} color="#0056D2" />
+                  <span>3.3 Documentos Requeridos de Seguro & PGR</span>
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Anexe os arquivos digitais de suas apólices, quitação e PGR. Leitura OCR automática ativa.
+                </p>
+              </div>
+              <span style={{ fontSize: '0.725rem', background: '#F0F9FF', color: '#0369A1', padding: '3px 10px', borderRadius: 4, fontWeight: 700 }}>
+                🔵 DOCUMENTOS REQUERIDOS
+              </span>
             </div>
-            <span style={{ fontSize: '0.725rem', background: '#F0F9FF', color: '#0369A1', padding: '3px 10px', borderRadius: 4, fontWeight: 700 }}>
-              🔵 DOCUMENTOS REQUERIDOS
-            </span>
-          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {SEGUROS_DOC_DEFS.map((docDef) => {
-              const uploaded = docs.find(d => d.id === docDef.id);
-              const isScanning = scanningDocId === docDef.id;
-              const validity = uploaded?.vigencia ? calculateDocumentValidity(uploaded.vigencia) : null;
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {SEGUROS_DOC_DEFS.map((docDef) => {
+                const uploaded = docs.find(d => d.id === docDef.id);
+                const isScanning = scanningDocId === docDef.id;
+                const validity = uploaded?.vigencia ? calculateDocumentValidity(uploaded.vigencia) : null;
 
-              return (
-                <div
-                  key={docDef.id}
-                  className="card"
-                  style={{
-                    padding: '1rem 1.25rem',
-                    border: uploaded ? '1.5px solid #86EFAC' : '1px solid var(--border-light)',
-                    background: uploaded ? '#F0FDF4' : 'white',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    <div style={{ flex: '1 1 350px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--primary-900)' }}>
-                          {docDef.nome}
-                        </span>
-                        {docDef.id === 'doc_pgr_risco' ? (
-                          <span style={{ fontSize: '0.675rem', background: '#FEF2F2', color: '#991B1B', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>
-                            🔴 OBRIGATÓRIO
+                return (
+                  <div
+                    key={docDef.id}
+                    className="card"
+                    style={{
+                      padding: '1rem 1.25rem',
+                      border: uploaded ? '1.5px solid #86EFAC' : '1px solid var(--border-light)',
+                      background: uploaded ? '#F0FDF4' : 'white',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                      <div style={{ flex: '1 1 350px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--primary-900)' }}>
+                            {docDef.nome}
                           </span>
-                        ) : (
-                          <span style={{ fontSize: '0.675rem', background: '#F0F9FF', color: '#0369A1', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
-                            🔵 REQUERIDO (OU ESTIPULAÇÃO LOGSHARE)
-                          </span>
-                        )}
-                      </div>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 0.4rem 0' }}>
-                        {docDef.hint}
-                      </p>
-
-                      {/* Upload status or metadata */}
-                      {uploaded ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.4rem', fontSize: '0.78rem' }}>
-                          <span style={{ color: '#065F46', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <CheckCircle2 size={14} color="#10B981" />
-                            <span>{uploaded.arquivoNome}</span>
-                          </span>
-                          <span style={{ color: 'var(--text-muted)' }}>({uploaded.arquivoTamanho})</span>
-                          {uploaded.vigencia && (
-                            <span style={{
-                              background: validity?.bg || '#F3F4F6',
-                              color: validity?.text || '#1F2937',
-                              padding: '2px 8px',
-                              borderRadius: 4,
-                              fontWeight: 700,
-                              fontSize: '0.72rem'
-                            }}>
-                              {validity?.icon} Vigência: {formatDateBR(uploaded.vigencia)}
+                          {docDef.id === 'doc_pgr_risco' ? (
+                            <span style={{ fontSize: '0.675rem', background: '#FEF2F2', color: '#991B1B', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>
+                              🔴 OBRIGATÓRIO
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.675rem', background: '#F0F9FF', color: '#0369A1', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                              🔵 REQUERIDO
                             </span>
                           )}
                         </div>
-                      ) : null}
-                    </div>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 0.4rem 0' }}>
+                          {docDef.hint}
+                        </p>
 
-                    {/* Upload / Replace Actions */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <label
-                        className={`btn btn-sm ${uploaded ? 'btn-secondary' : 'btn-primary'}`}
-                        style={{ cursor: isScanning ? 'wait' : 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <input
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg"
-                          style={{ display: 'none' }}
-                          disabled={isScanning}
-                          onChange={(e) => handleInsuranceFileUpload(docDef, e)}
-                        />
-                        {isScanning ? (
-                          <>
-                            <Sparkles size={14} className="animate-spin" />
-                            <span>Lendo com IA...</span>
-                          </>
-                        ) : uploaded ? (
-                          <>
-                            <UploadCloud size={14} />
-                            <span>Substituir Arquivo</span>
-                          </>
-                        ) : (
-                          <>
-                            <UploadCloud size={14} />
-                            <span>Anexar Documento</span>
-                          </>
-                        )}
-                      </label>
+                        {/* Upload status or metadata */}
+                        {uploaded ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.4rem', fontSize: '0.78rem' }}>
+                            <span style={{ color: '#065F46', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <CheckCircle2 size={14} color="#10B981" />
+                              <span>{uploaded.arquivoNome}</span>
+                            </span>
+                            <span style={{ color: 'var(--text-muted)' }}>({uploaded.arquivoTamanho})</span>
+                            {uploaded.vigencia && (
+                              <span style={{
+                                background: validity?.bg || '#F3F4F6',
+                                color: validity?.text || '#1F2937',
+                                padding: '2px 8px',
+                                borderRadius: 4,
+                                fontWeight: 700,
+                                fontSize: '0.72rem'
+                              }}>
+                                {validity?.icon} Vigência: {formatDateBR(uploaded.vigencia)}
+                              </span>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
 
-                      {uploaded && (
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleRemoveDoc(docDef.id)}
-                          style={{ color: '#EF4444', borderColor: '#FCA5A5', padding: '0.35rem 0.5rem' }}
-                          title="Remover anexo"
+                      {/* Upload / Replace Actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <label
+                          className={`btn btn-sm ${uploaded ? 'btn-secondary' : 'btn-primary'}`}
+                          style={{ cursor: isScanning ? 'wait' : 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
+                          <input
+                            type="file"
+                            accept=".pdf,.png,.jpg,.jpeg"
+                            style={{ display: 'none' }}
+                            disabled={isScanning}
+                            onChange={(e) => handleInsuranceFileUpload(docDef, e)}
+                          />
+                          {isScanning ? (
+                            <>
+                              <Sparkles size={14} className="animate-spin" />
+                              <span>Lendo com IA...</span>
+                            </>
+                          ) : uploaded ? (
+                            <>
+                              <UploadCloud size={14} />
+                              <span>Substituir Arquivo</span>
+                            </>
+                          ) : (
+                            <>
+                              <UploadCloud size={14} />
+                              <span>Anexar Documento</span>
+                            </>
+                          )}
+                        </label>
+
+                        {uploaded && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleRemoveDoc(docDef.id)}
+                            style={{ color: '#EF4444', borderColor: '#FCA5A5', padding: '0.35rem 0.5rem' }}
+                            title="Remover anexo"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

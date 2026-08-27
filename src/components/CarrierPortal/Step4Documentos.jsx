@@ -114,6 +114,7 @@ export default function Step4Documentos({ formData, updateFormData }) {
   };
 
   // Metrics
+  const isLogShareInsurance = formData.gestaoRisco?.estipuladoLogShare || formData.gestaoRisco?.modeloSeguro === 'LOGSHARE_ESTIPULADO';
   const mandatoryDocs = ALL_SYSTEM_DOCUMENTS.filter(d => d.obrigatorio);
   const mandatoryUploadedCount = mandatoryDocs.filter(m => docs.some(d => d.id === m.id)).length;
   const totalUploadedCount = docs.length;
@@ -262,7 +263,11 @@ export default function Step4Documentos({ formData, updateFormData }) {
                       {cat?.title}
                     </span>
 
-                    {docDef.obrigatorio ? (
+                    {isLogShareInsurance && docDef.categoryId === 'cat_seguros_pgr' ? (
+                      <span style={{ fontSize: '0.675rem', background: '#DCFCE7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                        ✓ COBERTO VIA APÓLICE LOGSHARE
+                      </span>
+                    ) : docDef.obrigatorio ? (
                       <span style={{ fontSize: '0.675rem', background: '#FEF2F2', color: '#991B1B', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>
                         🔴 OBRIGATÓRIO
                       </span>
