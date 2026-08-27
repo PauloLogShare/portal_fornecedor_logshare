@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, ShieldCheck, CheckCircle2, AlertTriangle, Clock, Upload, FileText, FileCheck, ArrowRight, Printer, AlertCircle, Sparkles, Send } from 'lucide-react';
-import { calculateDocumentValidity, formatDateBR } from '../../services/validityCalculator';
+import { Search, ShieldCheck, CheckCircle2, AlertTriangle, Clock, Upload, FileText, FileCheck, ArrowRight, Printer, AlertCircle, Sparkles, Send, Plus, History } from 'lucide-react';
+import { calculateDocumentValidity, formatDateBR, ALL_SYSTEM_DOCUMENTS, OFFICIAL_DOCUMENT_CATEGORIES } from '../../services/validityCalculator';
 import { scanDocumentWithAI } from '../../services/aiDocumentScanner';
 import { saveCarrier } from '../../services/storageService';
+import { calculateRiskScore } from '../../services/riskEngineService';
 
 export default function CarrierStatusLookup({ carriers, onCarrierUpdated }) {
   const [cnpjQuery, setCnpjQuery] = useState('');
@@ -38,45 +39,161 @@ export default function CarrierStatusLookup({ carriers, onCarrierUpdated }) {
     });
   };
 
-  const handleReuploadDoc = async (docId, file) => {
+  const handleUploadOrReplaceDoc = async (docDef, file) => {
     if (!file || !foundCarrier) return;
-    setUploadingDocId(docId);
+    setUploadingDocId(docDef.id);
 
-    const base64Data = await readFileAsBase64(file);
-    const docDef = (foundCarrier.documentos || []).find(d => d.id === docId) || { id: docId, nome: docId };
-    const scan = await scanDocumentWithAI(file, docDef);
-    setUploadingDocId(null);
+    try {
+      const base64Data = await readFileAsBase64(file);
+      const scan = await scanDocumentWithAI(file, docDef, foundCarrier);
+      setUploadingDocId(null);
 
-    const isExpired = scan.validityAnalysis?.key === "EXPIRED";
-    const updatedDocs = (foundCarrier.documentos || []).map(d => {
-      if (d.id === docId) {
-        return {
-          ...d,
-          status: isExpired ? "IRREGULAR" : "VALIDO",
-          vigencia: scan.extractedVigencia,
-          arquivoNome: file.name,
-          arquivoTamanho: `${(file.size / 1024).toFixed(1)} KB`,
-          arquivoMime: file.type || "application/pdf",
-          arquivoBase64: base64Data,
-          dataEnvio: new Date().toISOString()
-        };
+      const isExpired = scan.validityAnalysis?.key === "EXPIRED";
+      const existingDocs = foundCarrier.documentos || [];
+      const existingIndex = existingDocs.findIndex(d => d.id === docDef.id);
+      const existingDoc = existingIndex >= 0 ? existingDocs[existingIndex] : null;
+
+      const previousHistory = existingDoc?.history || [];
+      let updatedHistory = [...previousHistory];
+      let version = 1;
+
+      if (existingDoc && (existingDoc.arquivoBase64 || existingDoc.arquivoNome)) {
+        version = (existingDoc.version || 1) + 1;
+        updatedHistory.push({
+          version: existingDoc.version || 1,
+          arquivoNome: existingDoc.arquivoNome,
+          arquivoTamanho: existingDoc.arquivoTamanho,
+          arquivoMime: existingDoc.arquivoMime,
+          arquivoBase64: existingDoc.arquivoBase64,
+          vigencia: existingDoc.vigencia,
+          status: existingDoc.status,
+          dataEnvio: existingDoc.dataEnvio || new Date().toISOString(),
+          substituidoEm: new Date().toISOString()
+        });
       }
-      return d;
-    });
 
-    const updatedCarrier = {
-      ...foundCarrier,
-      documentos: updatedDocs,
-      status: "AGUARDANDO_ANALISE", // Moves back to review queue
-      ultimaAtualizacao: new Date().toISOString()
-    };
+      const newDocObj = {
+        id: docDef.id,
+        nome: docDef.nome,
+        shortName: docDef.shortName || docDef.nome,
+        obrigatorio: docDef.obrigatorio || false,
+        categoryId: docDef.categoryId,
+        status: isExpired ? "IRREGULAR" : "VALIDO",
+        vigencia: scan.extractedVigencia || "31/12/2028",
+        arquivoNome: file.name,
+        arquivoTamanho: `${(file.size / 1024).toFixed(1)} KB`,
+        arquivoMime: file.type || "application/pdf",
+        arquivoBase64: base64Data,
+        version: version,
+        history: updatedHistory,
+        rntrcData: scan.rntrcData || null,
+        aiAnalysis: {
+          confidence: scan.confidence,
+          extractedDocType: scan.extractedDocType,
+          extractedNumber: scan.extractedNumber,
+          extractedRazaoSocial: scan.extractedRazaoSocial,
+          rntrcData: scan.rntrcData || null,
+          notes: scan.extractedNotes,
+          isExpired
+        },
+        dataEnvio: new Date().toISOString()
+      };
 
-    saveCarrier(updatedCarrier);
-    setFoundCarrier(updatedCarrier);
-    if (onCarrierUpdated) onCarrierUpdated(updatedCarrier);
-    setSuccessMessage(`Documento "${docDef.nome}" atualizado e enviado para reanálise do especialista!`);
-    setTimeout(() => setSuccessMessage(null), 4000);
+      let updatedDocs;
+      if (existingIndex >= 0) {
+        updatedDocs = [...existingDocs];
+        updatedDocs[existingIndex] = newDocObj;
+      } else {
+        updatedDocs = [...existingDocs, newDocObj];
+      }
+
+      const carrierWithNewDocs = {
+        ...foundCarrier,
+        documentos: updatedDocs
+      };
+
+      const { scoreTotal, breakdown } = calculateRiskScore(carrierWithNewDocs);
+
+      const updatedCarrier = {
+        ...carrierWithNewDocs,
+        scoreTotal,
+        scoreBreakdown: breakdown,
+        status: "AGUARDANDO_ANALISE", // Retorna para reanálise do especialista
+        ultimaAtualizacao: new Date().toISOString()
+      };
+
+      saveCarrier(updatedCarrier);
+      setFoundCarrier(updatedCarrier);
+      if (onCarrierUpdated) onCarrierUpdated(updatedCarrier);
+      setSuccessMessage(`Documento "${docDef.nome}" anexado com sucesso e enviado para análise do especialista!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      console.error("Erro ao enviar documento:", err);
+      setUploadingDocId(null);
+    }
   };
+
+  // Cálculo da lista completa de documentos (enviados e pendentes)
+  const isLogShareInsurance = foundCarrier?.gestaoRisco?.estipuladoLogShare === true;
+
+  const availableSystemDocs = isLogShareInsurance 
+    ? ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId !== "cat_seguros_pgr")
+    : ALL_SYSTEM_DOCUMENTS;
+
+  const processedDocIds = new Set();
+  const allDisplayDocs = [];
+
+  // 1. Processar todos os documentos do checklist do sistema
+  availableSystemDocs.forEach(sysDoc => {
+    processedDocIds.add(sysDoc.id);
+    const uploaded = (foundCarrier?.documentos || []).find(d => d.id === sysDoc.id);
+
+    if (uploaded) {
+      const validity = calculateDocumentValidity(uploaded.vigencia);
+      const isIrregular = uploaded.status === 'IRREGULAR' || validity.key === 'EXPIRED';
+      allDisplayDocs.push({
+        ...sysDoc,
+        ...uploaded,
+        isUploaded: true,
+        isIrregular,
+        validity
+      });
+    } else {
+      allDisplayDocs.push({
+        ...sysDoc,
+        isUploaded: false,
+        isIrregular: sysDoc.obrigatorio,
+        status: 'NAO_ENVIADO',
+        vigencia: null,
+        validity: { label: 'Não Enviado', icon: '🔴', key: 'MISSING', bg: '#FEF2F2', border: '#FCA5A5', text: '#991B1B' }
+      });
+    }
+  });
+
+  // 2. Adicionar quaisquer outros documentos customizados que foram anexados (ex: Ficha Receita Federal)
+  (foundCarrier?.documentos || []).forEach(uploaded => {
+    if (!processedDocIds.has(uploaded.id)) {
+      const validity = calculateDocumentValidity(uploaded.vigencia);
+      const isIrregular = uploaded.status === 'IRREGULAR' || validity.key === 'EXPIRED';
+      allDisplayDocs.push({
+        id: uploaded.id,
+        nome: uploaded.nome || uploaded.arquivoNome || 'Documento Anexado',
+        shortName: uploaded.shortName || 'Documento',
+        obrigatorio: uploaded.obrigatorio || false,
+        ...uploaded,
+        isUploaded: true,
+        isIrregular,
+        validity
+      });
+    }
+  });
+
+  // Contadores
+  const mandatoryDocs = allDisplayDocs.filter(d => d.obrigatorio);
+  const missingMandatoryDocs = mandatoryDocs.filter(d => !d.isUploaded);
+  const expiredMandatoryDocs = mandatoryDocs.filter(d => d.isUploaded && d.isIrregular);
+  const totalPendingMandatory = missingMandatoryDocs.length + expiredMandatoryDocs.length;
+  const regularDocs = allDisplayDocs.filter(d => d.isUploaded && !d.isIrregular);
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -202,6 +319,30 @@ export default function CarrierStatusLookup({ carriers, onCarrierUpdated }) {
             </div>
           </div>
 
+          {/* Pending Mandatory Alert Banner */}
+          {totalPendingMandatory > 0 && (
+            <div style={{
+              background: '#FEF2F2',
+              border: '1.5px solid #EF4444',
+              borderRadius: 'var(--radius-md)',
+              padding: '1.25rem',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.75rem'
+            }}>
+              <AlertCircle size={22} color="#DC2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#991B1B', margin: 0 }}>
+                  Atenção: Identificamos {totalPendingMandatory} documento(s) obrigatório(s) pendente(s) de envio ou vencido(s)
+                </h4>
+                <p style={{ fontSize: '0.835rem', color: '#7F1D1D', margin: '0.35rem 0 0 0', lineHeight: 1.4 }}>
+                  Para que a equipe de especialistas da LogShare possa concluir a análise de dados e liberar a homologação, realize o upload dos documentos destacados em vermelho abaixo.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Parecer / Parecer Details */}
           {foundCarrier.parecer?.resumoExecutivo && (
             <div style={{
@@ -233,15 +374,35 @@ export default function CarrierStatusLookup({ carriers, onCarrierUpdated }) {
             </div>
           )}
 
-          {/* Document Status Table with Re-upload button */}
+          {/* Document Status Table with Upload & Re-upload buttons */}
           <div>
-            <h4 style={{ fontSize: '1rem', color: 'var(--primary-900)', marginBottom: '0.75rem' }}>
-              Situação dos Documentos & Reenvio de Pendências
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {(foundCarrier.documentos || []).map(doc => {
-                const validity = calculateDocumentValidity(doc.vigencia);
-                const isIrregular = doc.status === 'IRREGULAR' || validity.key === 'EXPIRED';
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h4 style={{ fontSize: '1.05rem', color: 'var(--primary-900)', margin: 0 }}>
+                  Situação dos Documentos & Envio de Pendências
+                </h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                  Abaixo estão listados todos os documentos do checklist. Você pode anexar pendências ou atualizar versões.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem' }}>
+                <span style={{ background: '#DCFCE7', color: '#166534', padding: '3px 8px', borderRadius: 4, fontWeight: 700 }}>
+                  ✓ {regularDocs.length} Regular{regularDocs.length !== 1 ? 'es' : ''}
+                </span>
+                {totalPendingMandatory > 0 && (
+                  <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '3px 8px', borderRadius: 4, fontWeight: 800 }}>
+                    🔴 {totalPendingMandatory} Obrigatório{totalPendingMandatory !== 1 ? 's' : ''} Pendente{totalPendingMandatory !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {allDisplayDocs.map((doc) => {
+                const isMissing = !doc.isUploaded;
+                const isExpired = doc.isUploaded && doc.isIrregular;
+                const isValid = doc.isUploaded && !doc.isIrregular;
 
                 return (
                   <div
@@ -250,52 +411,104 @@ export default function CarrierStatusLookup({ carriers, onCarrierUpdated }) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '0.75rem 1rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: isIrregular ? '#FEF2F2' : 'white',
-                      border: `1px solid ${isIrregular ? '#FCA5A5' : 'var(--border-light)'}`,
+                      padding: '0.85rem 1.15rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: isMissing
+                        ? (doc.obrigatorio ? '#FFF5F5' : '#F8FAFC')
+                        : isExpired ? '#FEF2F2' : '#FFFFFF',
+                      border: isMissing
+                        ? (doc.obrigatorio ? '1.5px dashed #EF4444' : '1px dashed #CBD5E1')
+                        : isExpired ? '1.5px solid #FCA5A5' : '1px solid #BBF7D0',
                       flexWrap: 'wrap',
-                      gap: '0.75rem'
+                      gap: '0.75rem',
+                      boxShadow: isMissing && doc.obrigatorio ? '0 1px 4px rgba(239, 68, 68, 0.08)' : 'none'
                     }}
                   >
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--primary-900)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>{validity.icon}</span>
+                    <div style={{ flex: 1, minWidth: '240px' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.885rem', color: 'var(--primary-900)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span>{isMissing ? (doc.obrigatorio ? '🔴' : '⚪') : isExpired ? '🔴' : '🟢'}</span>
                         <span>{doc.nome}</span>
+                        {doc.obrigatorio && (
+                          <span style={{ fontSize: '0.65rem', background: '#FEE2E2', color: '#991B1B', padding: '1px 6px', borderRadius: 4, fontWeight: 800 }}>
+                            OBRIGATÓRIO
+                          </span>
+                        )}
+                        {doc.version && doc.version > 1 && (
+                          <span style={{ fontSize: '0.65rem', background: '#E2E8F0', color: '#1E293B', padding: '1px 5px', borderRadius: 4, fontWeight: 800 }}>
+                            v{doc.version}
+                          </span>
+                        )}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        Vigência: <strong>{formatDateBR(doc.vigencia)}</strong> • Arquivo: {doc.arquivoNome || 'Ausente'}
+
+                      <div style={{ fontSize: '0.775rem', color: isMissing && doc.obrigatorio ? '#B91C1C' : 'var(--text-muted)', marginTop: '3px' }}>
+                        {isMissing ? (
+                          <span>{doc.hint || 'Documento obrigatório não anexado no cadastro inicial.'}</span>
+                        ) : (
+                          <span>
+                            Vigência: <strong>{formatDateBR(doc.vigencia)}</strong> • Arquivo: {doc.arquivoNome || 'Anexado'} ({doc.arquivoTamanho || 'OK'})
+                          </span>
+                        )}
                       </div>
+
+                      {doc.rntrcData && (
+                        <div style={{ fontSize: '0.725rem', color: '#166534', marginTop: '3px', fontWeight: 600 }}>
+                          ✓ RNTRC Nº {doc.rntrcData.numero} • Categoria: {doc.rntrcData.categoria} • Situação: {doc.rntrcData.situacao}
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      {/* Status Tag */}
                       <span style={{
                         fontSize: '0.75rem',
-                        fontWeight: 700,
+                        fontWeight: 800,
                         padding: '3px 8px',
                         borderRadius: 4,
-                        background: isIrregular ? '#FEE2E2' : '#DCFCE7',
-                        color: isIrregular ? '#991B1B' : '#166534'
+                        background: isMissing
+                          ? (doc.obrigatorio ? '#FEE2E2' : '#F1F5F9')
+                          : isExpired ? '#FEE2E2' : '#DCFCE7',
+                        color: isMissing
+                          ? (doc.obrigatorio ? '#991B1B' : '#475569')
+                          : isExpired ? '#991B1B' : '#166534'
                       }}>
-                        {isIrregular ? '✗ PENDENTE / VENCIDO' : '✓ REGULAR'}
+                        {isMissing
+                          ? (doc.obrigatorio ? '✗ NÃO ENVIADO' : '⚪ OPCIONAL PENDENTE')
+                          : isExpired ? '✗ VENCIDO / IRREGULAR' : '✓ REGULAR'}
                       </span>
 
-                      {/* Direct Re-upload Action */}
+                      {/* Direct Upload / Re-upload Action */}
                       <label
-                        htmlFor={`reupload-${doc.id}`}
-                        className="btn btn-secondary btn-sm"
-                        style={{ cursor: 'pointer', fontSize: '0.75rem' }}
+                        htmlFor={`upload-doc-${doc.id}`}
+                        className={`btn ${isMissing && doc.obrigatorio ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                        style={{
+                          cursor: 'pointer',
+                          fontSize: '0.775rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          whiteSpace: 'nowrap',
+                          background: isMissing && doc.obrigatorio ? '#DC2626' : undefined,
+                          borderColor: isMissing && doc.obrigatorio ? '#DC2626' : undefined,
+                          color: isMissing && doc.obrigatorio ? '#FFFFFF' : undefined
+                        }}
                       >
                         <Upload size={13} />
-                        <span>{uploadingDocId === doc.id ? "Processando..." : "Substituir Arquivo"}</span>
+                        <span>
+                          {uploadingDocId === doc.id
+                            ? "Processando..."
+                            : isMissing
+                            ? "Anexar Documento"
+                            : "Substituir Arquivo"}
+                        </span>
                         <input
-                          id={`reupload-${doc.id}`}
+                          id={`upload-doc-${doc.id}`}
                           type="file"
                           accept=".pdf,.png,.jpg,.jpeg"
                           style={{ display: 'none' }}
+                          disabled={uploadingDocId === doc.id}
                           onChange={(e) => {
                             if (e.target.files?.[0]) {
-                              handleReuploadDoc(doc.id, e.target.files[0]);
+                              handleUploadOrReplaceDoc(doc, e.target.files[0]);
                             }
                           }}
                         />
