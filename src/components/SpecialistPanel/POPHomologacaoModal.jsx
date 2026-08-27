@@ -269,20 +269,20 @@ export default function POPHomologacaoModal({ isOpen, onClose }) {
             <tr>
               <td><span class="tag tag-apta">APTA</span></td>
               <td><strong>>= 800 pontos</strong></td>
-              <td>Liberação irrestrita para contratação em toda a malha LogShare.</td>
+              <td>Liberação irrestrita para contratação em toda a malha LogShare (100% documentos obrigatórios válidos).</td>
             </tr>
             <tr>
               <td><span class="tag tag-restricoes">APTA COM RESTRIÇÕES</span></td>
               <td><strong>600 a 799 pontos</strong></td>
               <td>
-                <strong>Operação com travas:</strong> Teto de carga (R$ 300k-500k), escolta armada para cargas visadas, duplo rastreamento e proibição de redespacho.<br>
+                <strong>Operação com travas:</strong> Teto de carga de R$ 300k por viagem e Duplo rastreamento obrigatório. (Exige 100% dos documentos obrigatórios válidos).<br>
                 <em style="color: #92400E; font-size: 8.5pt;">* Diretriz de Alocação: Os casos de transportadores com restrições serão analisados a depender do cliente em questão, licenças necessárias e valor da carga.</em>
               </td>
             </tr>
             <tr>
               <td><span class="tag tag-nao-apta">NÃO APTA</span></td>
-              <td><strong>< 600 pontos ou Dealbreaker</strong></td>
-              <td>Bloqueio cadastral na plataforma LogShare até regularização formal.</td>
+              <td><strong>< 600 pts, Doc Obrigatório Vencido/Faltando ou Dealbreaker</strong></td>
+              <td>Bloqueio cadastral na plataforma LogShare até regularização formal de qualquer documento obrigatório.</td>
             </tr>
           </tbody>
         </table>
@@ -703,13 +703,12 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
                     <span>APTA COM RESTRIÇÕES</span>
                   </div>
                   <p style={{ fontSize: '0.8rem', color: '#92400E', margin: '0.4rem 0' }}>
-                    <strong>Score entre 600 e 799 pontos</strong> ou pendência menor.
+                    <strong>Score entre 600 e 799 pontos</strong> (100% dos documentos obrigatórios válidos).
                   </p>
                   <ul style={{ fontSize: '0.75rem', color: '#78350F', paddingLeft: '1.1rem', margin: '0 0 0.5rem 0' }}>
-                    <li>Teto de carga de R$ 300k a R$ 500k por viagem.</li>
-                    <li>Escolta armada obrigatória em cargas visadas.</li>
-                    <li>Duplo rastreamento obrigatório.</li>
-                    <li>Proibição de redespacho sem anuência prévia.</li>
+                    <li>Teto de carga de R$ 300k por viagem.</li>
+                    <li>Duplo rastreamento obrigatório (telemetria + isca).</li>
+                    <li>Consulta prévia de motoristas na Gerenciadora de Risco (4h).</li>
                   </ul>
                   <div style={{ background: 'rgba(245, 158, 11, 0.15)', borderLeft: '3px solid #F59E0B', padding: '5px 8px', borderRadius: '0 4px 4px 0', fontSize: '0.72rem', color: '#92400E' }}>
                     <strong>Diretriz de Alocação:</strong> Os casos com restrições serão analisados a depender do cliente em questão, licenças necessárias e valor da carga.
@@ -722,9 +721,10 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
                     <span>NÃO APTA (BLOQUEADA)</span>
                   </div>
                   <p style={{ fontSize: '0.8rem', color: '#991B1B', margin: '0.4rem 0' }}>
-                    <strong>Score {'<'} 600 pontos</strong> ou ocorrência de Dealbreaker.
+                    <strong>Score {'<'} 600 pontos</strong> ou documento obrigatório vencido/faltando.
                   </p>
                   <ul style={{ fontSize: '0.75rem', color: '#7F1D1D', paddingLeft: '1.1rem', margin: 0 }}>
+                    <li>Qualquer documento obrigatório vencido, pendente ou faltante.</li>
                     <li>RNTRC irregular, suspenso ou vencido.</li>
                     <li>Cartão CNPJ inapto na Receita Federal.</li>
                     <li>Fraude documental ou trabalho análogo ao escravo.</li>

@@ -111,24 +111,23 @@ Avalia a maturidade jurídica e estabilidade patrimonial da transportadora:
 Com base no Score Global de Risco e na verificação de impeditivos críticos:
 
 ### 🟢 1. APTA (LIBERADA PARA OPERAÇÃO IRRESTRITA)
-- **Critério**: Score Global $\ge$ 800 pontos, regularidade fiscal/trabalhista comprovada, RNTRC ativo e sem impeditivos críticos.
+- **Critério**: Score Global $\ge$ 800 pontos, 100% dos documentos obrigatórios válidos e regulares, regularidade fiscal/trabalhista comprovada, RNTRC ativo e sem impeditivos críticos.
 - **Parecer**: Homologação deferida. Operação liberada conforme regras de trânsito da LogShare.
 
 ### 🟡 2. APTA COM RESTRIÇÕES (LIBERAÇÃO CONDICIONADA & ANÁLISE CASO A CASO)
-- **Critério**: Score Global entre 600 e 799 pontos OU pendência documental não impeditiva (ex: documento condicional a regularizar).
-- **Diretriz de Alocação Operacional**: Os acionamentos e alocações de transportadores com restrições serão analisados e autorizados **caso a caso**, a depender:
+- **Critério Mandatório**: Score Global entre 600 e 799 pontos E **100% dos documentos obrigatórios válidos e regulares** (não pode conter nenhum documento obrigatório vencido ou faltando). Apenas documentos condicionais/setoriais podem estar pendentes.
+- **Diretriz de Alocação Operacional**: Os acionamentos e alocações de transportadores com restrições serão analisados e autorizados **caso a caso pela LogShare**, a depender:
   1. **Do Cliente/Embarcador em Questão**: Conformidade com as regras e exigências contratuais específicas de cada parceiro.
   2. **Das Licenças Necessárias**: Comprovação de licenças sanitárias (AFE/VISA), ambientais (CTF/IBAMA) ou transporte de produtos perigosos específicas para a rota e tipo de carga.
-  3. **Do Valor da Carga & Travas Operacionais**:
-     - **Teto de Carga**: Fixado entre R$ 300.000,00 e R$ 500.000,00 por viagem.
-     - **Escolta Armada Obrigatória**: Para cargas visadas a roubo (cosméticos, eletrônicos, farmacêuticos e alto valor).
+  3. **Do Valor da Carga & Travas Operacionais Fixadas**:
+     - **Teto de Carga**: Fixado em até **R$ 300.000,00 por viagem**.
      - **Duplo Rastreamento Obrigatório**: Telemetria primária com redundância móvel / isca de carga.
-     - **Proibição Estrita de Redespacho**: Vedada qualquer subcontratação sem prévia anuência formal da LogShare.
      - **Consulta Prévia GR**: Liberação de motorista na Gerenciadora de Risco com no mínimo 4h de antecedência.
 
 ### 🔴 3. NÃO APTA (BLOQUEADA / RECUSADA)
-- **Critério**: Score Global < 600 pontos OU ocorrência de qualquer um dos **Impeditivos Críticos (Dealbreakers)**.
-- **Impeditivos Críticos**:
+- **Critério**: Score Global < 600 pontos OU **qualquer documento obrigatório vencido, irregular ou faltando** OU ocorrência de qualquer um dos **Impeditivos Críticos (Dealbreakers)**.
+- **Impeditivos Críticos & Documentais**:
+  - Qualquer um dos documentos obrigatórios (RNTRC, CNPJ, Contrato Social, CND Federal, CNDT Trabalhista, CRF FGTS, CRLV de Frota ou CNHs com Toxicológico) vencido ou não apresentado.
   - `doc_rntrc_antt` irregular, suspenso ou cancelado na base da ANTT.
   - `doc_cartao_cnpj` inapto, baixado ou suspenso na Receita Federal.
   - Constatação de fraude documental ou certidão vencida sem protocolo de renovação.
