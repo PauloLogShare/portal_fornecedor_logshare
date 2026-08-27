@@ -66,8 +66,8 @@ SCORE GLOBAL (1000 pts) = Documental (300) + Financeiro (300) + Gestão de Risco
 | **CNDT Trabalhista** | `doc_cndt_trabalhista` | Certidão Negativa de Débitos Trabalhistas ativa | **20 pts** |
 | **CRF FGTS** | `doc_crf_fgts` | Certidão de Regularidade do FGTS ativa | **15 pts** |
 | **Contrato Social Consolidado** | `doc_contrato_social` | Contrato registrado na Junta Comercial | **10 pts** |
-| **Relação de Frota com CRLV Vigente** | `doc_relacao_frota_crlv` | Documentos dos veículos em dia | **10 pts** |
-| **CNH Motoristas com Toxicológico** | `doc_cnh_toxicologico` | Exames toxicológicos periódicos regulares (Lei 13.103) | **10 pts** |
+| **Capacidade de Frota & Equipamento** | `doc_relacao_frota_crlv` | Frota operacional declarada / validação dinâmica na GR por viagem | **10 pts** |
+| **Qualificação de Condutores (GR 12h)** | `doc_cnh_toxicologico` | Consulta prévia de condutores e exame toxicológico ativo na GR | **10 pts** |
 | **SUBTOTAL MÁXIMO PILAR 1** | | | **300 pts** |
 
 ---
@@ -127,7 +127,7 @@ Com base no Score Global de Risco e na verificação de impeditivos críticos:
 ### 🔴 3. NÃO APTA (BLOQUEADA / RECUSADA)
 - **Critério**: Score Global < 600 pontos OU **qualquer documento obrigatório vencido, irregular ou faltando** OU ocorrência de qualquer um dos **Impeditivos Críticos (Dealbreakers)**.
 - **Impeditivos Críticos & Documentais**:
-  - Qualquer um dos documentos obrigatórios (RNTRC, CNPJ, Contrato Social, CND Federal, CNDT Trabalhista, CRF FGTS, CRLV de Frota ou CNHs com Toxicológico) vencido ou não apresentado.
+  - Qualquer um dos documentos obrigatórios (RNTRC, Cartão CNPJ, Contrato Social, CND Federal, CNDT Trabalhista, CRF FGTS, CND Estadual ou CND Municipal) vencido ou não apresentado.
   - `doc_rntrc_antt` irregular, suspenso ou cancelado na base da ANTT.
   - `doc_cartao_cnpj` inapto, baixado ou suspenso na Receita Federal.
   - Constatação de fraude documental ou certidão vencida sem protocolo de renovação.

@@ -280,18 +280,20 @@ export const ALL_SYSTEM_DOCUMENTS = [
   {
     id: "doc_relacao_frota_crlv",
     categoryId: "cat_frota_motoristas",
-    nome: "Relação da frota (própria e agregada) com CRLV vigente",
-    shortName: "Relação Frota + CRLV Vigente",
-    obrigatorio: true,
-    hint: "Espelho da frota com placas, tipo de veículo, capacidade de carga e CRLV do exercício."
+    nome: "Relação da frota (própria e agregada) com CRLV",
+    shortName: "Relação Frota + CRLV",
+    obrigatorio: false,
+    condicionalText: "Opcional no cadastro inicial; validação operacional de veículos por viagem na GR (12h)",
+    hint: "Espelho da frota com placas, tipo de veículo e capacidade. Validação automatizada na GR por embarque."
   },
   {
     id: "doc_cnh_toxicologico",
     categoryId: "cat_frota_motoristas",
-    nome: "CNH válida dos motoristas com exame toxicológico em dia",
+    nome: "CNH dos motoristas com exame toxicológico em dia",
     shortName: "CNH Motoristas + Toxicológico",
-    obrigatorio: true,
-    hint: "Comprovante de CNHs profissionais dos condutores com exame toxicológico periódico regular (Lei 13.103)."
+    obrigatorio: false,
+    condicionalText: "Opcional no cadastro inicial; consulta prévia de condutores por viagem na GR (12h)",
+    hint: "Validação e liberação do perfil do condutor realizada diretamente na Gerenciadora de Risco (12h)."
   }
 ];
 

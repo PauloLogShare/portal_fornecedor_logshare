@@ -51,10 +51,10 @@ export function evaluateComplianceStandards(carrier) {
 
   // 1. Qualidade & Abastecimento
   const hasRntrc = docs.some(d => (d.id === "doc_rntrc_antt" || d.id === "doc_rntrc") && d.status === "VALIDO");
-  const hasFrotaCRLV = docs.some(d => d.id === "doc_relacao_frota_crlv" && d.status === "VALIDO");
-  const hasPGR = gr.temPGR || docs.some(d => (d.id === "doc_pgr_risco" || d.id === "doc_pgr") && d.status === "VALIDO");
+  const hasFrota = docs.some(d => d.id === "doc_relacao_frota_crlv" && d.status === "VALIDO") || ((po.frotaPropria || 0) + (po.frotaAgregada || 0) > 0);
+  const hasPGR = gr.temPGR || gr.estipuladoLogShare || docs.some(d => (d.id === "doc_pgr_risco" || d.id === "doc_pgr") && d.status === "VALIDO");
   const hasTelemetria = (po.tecnologiaRastreamento || []).length > 0;
-  const scoreQualidade = (hasRntrc ? 30 : 0) + (hasFrotaCRLV ? 25 : 0) + (hasPGR ? 25 : 0) + (hasTelemetria ? 20 : 0);
+  const scoreQualidade = (hasRntrc ? 30 : 0) + (hasFrota ? 25 : 0) + (hasPGR ? 25 : 0) + (hasTelemetria ? 20 : 0);
   const statusQualidade = scoreQualidade >= 75 ? "CONFORME" : scoreQualidade >= 40 ? "PARCIAL" : "NAO_CONFORME";
 
   // 2. Vigilância Sanitária & Cosméticos (RDC 48/2013 e ISO 22716)
@@ -66,9 +66,9 @@ export function evaluateComplianceStandards(carrier) {
   const statusSanitaria = scoreSanitaria >= 60 ? "CONFORME" : scoreSanitaria >= 25 ? "PARCIAL" : "EM_QUALIFICACAO";
 
   // 3. Saúde & Segurança (SSOMA)
-  const hasCNHToxicol = docs.some(d => d.id === "doc_cnh_toxicologico" && d.status === "VALIDO");
-  const hasGerenciadora = gr.gerenciadoraRisco && gr.gerenciadoraRisco !== "Nenhuma cadastrada";
-  const scoreSSOMA = (hasCNHToxicol ? 50 : 0) + (hasPGR ? 30 : 0) + (hasGerenciadora ? 20 : 0);
+  const hasGerenciadora = gr.gerenciadoraRisco && gr.gerenciadoraRisco !== "Nenhuma cadastrada" && gr.gerenciadoraRisco !== "Nenhuma";
+  const hasCNHToxicol = docs.some(d => d.id === "doc_cnh_toxicologico" && d.status === "VALIDO") || hasGerenciadora;
+  const scoreSSOMA = (hasCNHToxicol ? 45 : 0) + (hasPGR ? 35 : 0) + (hasGerenciadora ? 20 : 0);
   const statusSSOMA = scoreSSOMA >= 70 ? "CONFORME" : scoreSSOMA >= 40 ? "PARCIAL" : "NAO_CONFORME";
 
   // 4. Meio Ambiente & Sustentabilidade

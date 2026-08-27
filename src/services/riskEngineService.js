@@ -62,10 +62,12 @@ export function calculateRiskScore(carrier) {
   if (contratoDoc?.status === "VALIDO") documental += 10;
 
   const frotaDoc = docs.find(d => d.id === "doc_relacao_frota_crlv");
-  if (frotaDoc?.status === "VALIDO") documental += 10;
+  const hasFrotaDeclarada = ((carrier.perfilOperacional?.frotaPropria || 0) + (carrier.perfilOperacional?.frotaAgregada || 0)) > 0;
+  if (frotaDoc?.status === "VALIDO" || hasFrotaDeclarada) documental += 10;
 
   const cnhDoc = docs.find(d => d.id === "doc_cnh_motoristas_toxicol" || d.id === "doc_cnh_toxicologico");
-  if (cnhDoc?.status === "VALIDO") documental += 10;
+  const hasGR = carrier.gestaoRisco?.gerenciadoraRisco && carrier.gestaoRisco.gerenciadoraRisco !== "Nenhuma" && carrier.gestaoRisco.gerenciadoraRisco !== "Nenhuma cadastrada";
+  if (cnhDoc?.status === "VALIDO" || hasGR) documental += 10;
 
   documental = Math.min(300, documental);
 
