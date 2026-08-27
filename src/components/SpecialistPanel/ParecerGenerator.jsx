@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { FileCheck, Printer, Copy, Check, Cloud, AlertCircle, ShieldAlert, Sparkles, Send } from 'lucide-react';
-import { STANDARD_RESTRICTIONS, RISK_LEVELS } from '../../services/riskEngineService';
+import { FileCheck, Printer, Copy, Check, Cloud, AlertCircle, ShieldAlert, Sparkles, Send, RefreshCw, AlertTriangle, Info } from 'lucide-react';
+import { STANDARD_RESTRICTIONS, RISK_LEVELS, generateRequiredActions, generateExecutiveSummary } from '../../services/riskEngineService';
 import { formatDateBR } from '../../services/validityCalculator';
 import { evaluateComplianceStandards } from '../../services/complianceStandardsService';
 import LogShareLogo from '../UI/LogShareLogo';
@@ -20,6 +20,27 @@ export default function ParecerGenerator({
 
   const handleStatusChange = (newStatus) => {
     onUpdateParecer('statusFinal', newStatus);
+    // Auto-update executive summary and required actions
+    const autoSummary = generateExecutiveSummary(carrier, newStatus, score);
+    const autoActions = generateRequiredActions(carrier, newStatus);
+    onUpdateParecer('resumoExecutivo', autoSummary);
+    onUpdateParecer('acoesRequeridas', autoActions);
+
+    if (newStatus === 'APTA_COM_RESTRICOES') {
+      onUpdateParecer('restricoesOperacionais', [
+        "Teto de valor de carga fixado em até R$ 300.000,00 por viagem",
+        "Rastreamento obrigatório",
+        "Consulta prévia de motoristas e equipamento na Gerenciadora de Risco (12h)",
+        "Alocação condicionada à análise caso a caso dos requisitos do cliente e valor da carga"
+      ]);
+    } else if (newStatus === 'APTA') {
+      onUpdateParecer('restricoesOperacionais', []);
+    }
+  };
+
+  const handleRegenerateActions = () => {
+    const autoActions = generateRequiredActions(carrier, status);
+    onUpdateParecer('acoesRequeridas', autoActions);
   };
 
   const handleToggleRestriction = (res) => {
@@ -237,12 +258,24 @@ LogShare Tecnologia em Logística & Compliance de Transportes
 
         {/* 4. Ações Requeridas */}
         <div className="form-group">
-          <label className="form-label" htmlFor="acoesRequeridas">
-            4. Ações Requeridas / Passos para Regularização:
-          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <label className="form-label" htmlFor="acoesRequeridas" style={{ margin: 0 }}>
+              4. Ações Requeridas & Plano de Regularização:
+            </label>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleRegenerateActions}
+              style={{ fontSize: '0.725rem', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              title="Recalcular ações pendentes com base nos documentos atuais"
+            >
+              <RefreshCw size={12} />
+              <span>Regerar Ações Automaticamente</span>
+            </button>
+          </div>
           <textarea
             id="acoesRequeridas"
-            rows={3}
+            rows={5}
             className="form-textarea"
             placeholder="Especifique os passos necessários para sanar as pendências..."
             value={parecerData.acoesRequeridas || ''}
@@ -492,13 +525,41 @@ LogShare Tecnologia em Logística & Compliance de Transportes
           );
         })()}
 
-        {/* 5. Condicionantes / Restrições */}
+        {/* 5. Condicionantes & Restrições Operacionais */}
         <div style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ fontSize: '0.95rem', color: '#0A192F', textTransform: 'uppercase', borderBottom: '1.5px solid #CBD5E1', paddingBottom: '0.3rem', marginBottom: '0.75rem' }}>
             5. Condicionantes & Restrições Operacionais
           </h3>
+
+          {/* Detalhes Operacionais Deste Transportador */}
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '0.85rem 1rem', marginBottom: '0.75rem' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0A192F', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+              Parâmetros de Operação & Gestão de Risco Deste Transportador:
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem', fontSize: '0.78rem', color: '#334155' }}>
+              <div>
+                <strong>Teto Máximo por Viagem:</strong> {status === 'APTA_COM_RESTRICOES' ? 'R$ 300.000,00 (Trava)' : `R$ ${(carrier.gestaoRisco?.lmg || 0).toLocaleString('pt-BR')}`}
+              </div>
+              <div>
+                <strong>Tecnologia de Rastreamento:</strong> {(carrier.perfilOperacional?.tecnologiaRastreamento || []).join(', ') || 'Rastreamento obrigatório'}
+              </div>
+              <div>
+                <strong>Gerenciadora de Risco (GR):</strong> {carrier.gestaoRisco?.gerenciadoraRisco || 'Consulta prévia (12h)'}
+              </div>
+              <div>
+                <strong>Frota Alocada:</strong> {(carrier.perfilOperacional?.frotaPropria || 0) + (carrier.perfilOperacional?.frotaAgregada || 0)} veículos ({carrier.perfilOperacional?.frotaPropria || 0} próprios)
+              </div>
+              <div>
+                <strong>Tipos de Carga:</strong> {(carrier.perfilOperacional?.tiposCarga || []).join(', ') || 'Carga Geral'}
+              </div>
+              <div>
+                <strong>Cobertura Securitária:</strong> {carrier.gestaoRisco?.estipuladoLogShare ? 'Apólice Estipulada LogShare' : `Seguradora ${carrier.gestaoRisco?.seguradora || 'Própria'}`}
+              </div>
+            </div>
+          </div>
+
           {(parecerData.restricoesOperacionais || []).length > 0 ? (
-            <ul style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#334155' }}>
+            <ul style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#334155', margin: 0 }}>
               {(parecerData.restricoesOperacionais || []).map((r, i) => (
                 <li key={i} style={{ marginBottom: '4px' }}>
                   <strong>{r}</strong>
@@ -506,20 +567,27 @@ LogShare Tecnologia em Logística & Compliance de Transportes
               ))}
             </ul>
           ) : (
-            <p style={{ fontSize: '0.85rem', color: '#065F46' }}>
+            <p style={{ fontSize: '0.85rem', color: '#065F46', margin: 0 }}>
               ✓ Nenhuma restrição imposta. Liberação total para contratação em conformidade com as regras gerais da LogShare.
             </p>
           )}
         </div>
 
-        {/* 5. Ações Requeridas */}
+        {/* 6. Ações Requeridas para Regularização */}
         <div style={{ marginBottom: '2rem' }}>
           <h3 style={{ fontSize: '0.95rem', color: '#0A192F', textTransform: 'uppercase', borderBottom: '1.5px solid #CBD5E1', paddingBottom: '0.3rem', marginBottom: '0.75rem' }}>
-            5. Ações Requeridas para Regularização
+            6. Ações Requeridas para Regularização
           </h3>
-          <p style={{ fontSize: '0.85rem', color: '#334155', whiteSpace: 'pre-line' }}>
-            {parecerData.acoesRequeridas || 'Nenhuma pendência para regularização.'}
-          </p>
+          <div style={{
+            background: status === 'APTA' ? '#F0FDF4' : '#FEF2F2',
+            border: `1px solid ${status === 'APTA' ? '#BBF7D0' : '#FECACA'}`,
+            borderRadius: '6px',
+            padding: '1rem'
+          }}>
+            <p style={{ fontSize: '0.825rem', color: status === 'APTA' ? '#166534' : '#991B1B', whiteSpace: 'pre-line', margin: 0, lineHeight: 1.5, fontFamily: 'var(--font-mono)' }}>
+              {parecerData.acoesRequeridas || 'Nenhuma pendência para regularização.'}
+            </p>
+          </div>
         </div>
 
         {/* Assinatura / Rodapé de Compliance */}

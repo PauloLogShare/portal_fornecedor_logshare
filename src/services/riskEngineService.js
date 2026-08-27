@@ -1,7 +1,4 @@
-/**
- * Risk Engine & Homologation Analysis Service - LogShare
- * Implements rigorous transportation compliance rules & risk scoring (0-1000)
- */
+import { ALL_SYSTEM_DOCUMENTS, formatDateBR } from './validityCalculator';
 
 export const RISK_LEVELS = {
   BAIXO: { label: "Baixo Risco", class: "A", minScore: 800, color: "#10b981", badge: "badge-apta" },
@@ -218,23 +215,57 @@ export function generateExecutiveSummary(carrier, status, score) {
 }
 
 /**
- * Generates automated required actions based on document statuses
+ * Generates automated required actions based on document statuses and operational restrictions
  */
 export function generateRequiredActions(carrier, status) {
   const docs = carrier.documentos || [];
-  const pendencias = docs.filter(d => d.status === "PENDENTE" || d.status === "IRREGULAR");
+  const isLogShareInsurance = carrier.gestaoRisco?.estipuladoLogShare || carrier.gestaoRisco?.modeloSeguro === 'LOGSHARE_ESTIPULADO';
 
-  if (status === "APTA") {
-    return "Nenhuma ação corretiva necessária. Manter vigência e averbação das apólices em dia para renovação anual.";
-  }
+  const availableSystemDocs = isLogShareInsurance 
+    ? ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId !== "cat_seguros_pgr")
+    : ALL_SYSTEM_DOCUMENTS;
 
-  const actions = [];
-  pendencias.forEach((d, idx) => {
-    actions.push(`${idx + 1}. Regularizar e reenviar: ${d.nome} (Motivo: Situação ${d.status === "PENDENTE" ? "Pendente de apresentação/atualização" : "Irregular ou Vencida"}).`);
+  const mandatoryDocs = availableSystemDocs.filter(d => d.obrigatorio);
+
+  // 1. Documentos obrigatórios não enviados
+  const missingMandatoryDocs = mandatoryDocs.filter(m => {
+    const uploaded = docs.find(d => d.id === m.id);
+    return !uploaded || (!uploaded.arquivoBase64 && !uploaded.arquivoNome);
   });
 
-  if (carrier.gestaoRisco?.lmg < 500000 && status === "APTA_COM_RESTRICOES") {
-    actions.push(`${actions.length + 1}. Caso pretenda operar com cargas de maior valor agregado, apresentar endosso de apólice com expansão de LMG para no mínimo R$ 500.000,00.`);
+  // 2. Documentos vencidos ou irregulares
+  const expiredDocs = docs.filter(d => {
+    return d.status === "IRREGULAR" || d.status === "PENDENTE";
+  });
+
+  const actions = [];
+
+  if (missingMandatoryDocs.length > 0) {
+    actions.push(`--- DOCUMENTOS OBRIGATÓRIOS NÃO ENVIADOS (PENDÊNCIAS IMPEDITIVAS) ---`);
+    missingMandatoryDocs.forEach((m, idx) => {
+      actions.push(`${idx + 1}. Anexar: ${m.nome} (Exigência: ${m.hint || 'Documento obrigatório de compliance fiscal/regulatório'}).`);
+    });
+  }
+
+  if (expiredDocs.length > 0) {
+    if (actions.length > 0) actions.push('');
+    actions.push(`--- DOCUMENTOS VENCIDOS OU IRREGULARES ---`);
+    expiredDocs.forEach((d, idx) => {
+      actions.push(`${idx + 1}. Atualizar e reenviar: ${d.nome} (Situação: ${d.status} • Vigência: ${formatDateBR(d.vigencia) || 'Vencida'}).`);
+    });
+  }
+
+  if (status === "APTA_COM_RESTRICOES") {
+    if (actions.length > 0) actions.push('');
+    actions.push(`--- CONDICIONANTES & RESTRIÇÕES OPERACIONAIS APLICADAS ---`);
+    actions.push(`1. Limite operacional: Teto de carga de R$ 300.000,00 por viagem.`);
+    actions.push(`2. Rastreamento obrigatório: Telemetria ativa em todas as viagens com averbação eletrônica.`);
+    actions.push(`3. Gerenciamento de risco: Consulta prévia obrigatória de motoristas e equipamentos (12h antes do carregamento).`);
+    actions.push(`4. Diretriz LogShare: Alocação condicionada à validação caso a caso com base nas exigências do cliente e licenças sanitárias/ambientais.`);
+  }
+
+  if (actions.length === 0) {
+    return "Nenhuma pendência documental ou ação corretiva necessária. Manter a vigência das apólices e certidões em dia para renovação anual contínua.";
   }
 
   return actions.join("\n");
