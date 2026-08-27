@@ -209,7 +209,7 @@ export const ALL_SYSTEM_DOCUMENTS = [
     nome: "POPs de Boas Práticas de Transporte e Armazenagem (limpeza, controle de temperatura, rastreabilidade)",
     shortName: "POPs Boas Práticas / Qualidade",
     obrigatorio: false,
-    condicionalText: "Exigência RDC 48/2013 Item 3.3.5 & Grupo Boticário para cosméticos e higiene",
+    condicionalText: "Exigência RDC 48/2013 Item 3.3.5 & Padrão de Qualidade para cosméticos e higiene",
     hint: "Procedimentos Operacionais Padrão de limpeza de baús, temperatura e prevenção de contaminação."
   },
 

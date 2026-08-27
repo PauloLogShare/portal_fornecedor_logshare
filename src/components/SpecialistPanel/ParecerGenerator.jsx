@@ -464,14 +464,14 @@ LogShare Tecnologia em Logística & Compliance de Transportes
           </table>
         </div>
 
-        {/* 4. Aderência às Normas e Requisitos Setoriais (RDC 48, ISO 9001, ISO 22716, Grupo Boticário) */}
+        {/* 4. Aderência às Normas e Requisitos Setoriais (RDC 48, ISO 9001, ISO 22716, EFfCI, ESG) */}
         {(() => {
           const compliance = evaluateComplianceStandards(carrier);
           return (
             <div style={{ marginBottom: '1.5rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
                 <h3 style={{ fontSize: '0.925rem', color: '#0A192F', textTransform: 'uppercase', margin: 0, fontWeight: 700 }}>
-                  4. Conformidade Normativa & Qualidade (RDC 48 • ISO 9001 • ISO 22716 • Grupo Boticário)
+                  4. Conformidade Normativa & Qualidade (RDC 48 • ISO 9001 • ISO 22716 • EFfCI • ESG)
                 </h3>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: compliance.overallPercentage >= 70 ? '#059669' : '#D97706', background: compliance.overallPercentage >= 70 ? '#DCFCE7' : '#FEF3C7', padding: '2px 8px', borderRadius: 4 }}>
                   Índice de Aderência: {compliance.overallPercentage}%

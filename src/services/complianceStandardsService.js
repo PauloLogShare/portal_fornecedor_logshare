@@ -1,18 +1,8 @@
-/**
- * Compliance Standards & ESG Audit Engine - LogShare
- * 
- * Verifies carrier compliance against specific industry & regulatory standards:
- * - ANVISA RDC Nº 48/2013 (Item 3.3.5 - Boas Práticas de Transporte e Armazenagem de Cosméticos)
- * - ISO 9001:2015 & EFfCI (Item 8.4.3 - Controle de Provedores Externos / Ingredientes Cosméticos)
- * - ISO 22716:2007 (Item 6.2 - Terceirização e Boas Práticas de Fabricação Cosmética GMP)
- * - Requisitos de Fornecedores do Grupo Boticário (Qualidade, Abastecimento, SSOMA, ESG e Meio Ambiente)
- */
-
 export const COMPLIANCE_PILLARS = [
   {
     id: "qualidade_abastecimento",
     name: "Qualidade & Abastecimento",
-    normas: ["ISO 9001:2015 (Item 8.4.3)", "ISO 22716:2007 (Item 6.2)", "Padrão Grupo Boticário"],
+    normas: ["ISO 9001:2015 (Item 8.4.3)", "ISO 22716:2007 (Item 6.2)", "Requisitos de Excelência em Abastecimento"],
     description: "Qualificação técnica do transportador, integridade física da carga, rastreabilidade e pontualidade no abastecimento.",
     icon: "Award",
     color: "#0056D2"
@@ -28,7 +18,7 @@ export const COMPLIANCE_PILLARS = [
   {
     id: "seguranca_saude_ssoma",
     name: "Saúde & Segurança Ocupacional (SSOMA)",
-    normas: ["NR-01", "Lei 13.103/2015 (Motoristas)", "Diretrizes SSOMA Grupo Boticário"],
+    normas: ["NR-01", "Lei 13.103/2015 (Motoristas)", "Diretrizes de SSOMA & Segurança Viária"],
     description: "Exame toxicológico periódico dos motoristas, CNHs profissionais em dia, PGR de trânsito e gestão de fadiga.",
     icon: "ShieldAlert",
     color: "#D97706"
@@ -36,7 +26,7 @@ export const COMPLIANCE_PILLARS = [
   {
     id: "meio_ambiente_sustentabilidade",
     name: "Meio Ambiente & Sustentabilidade",
-    normas: ["CTF/IBAMA", "Proconve / Controle de Emissões", "ESG Grupo Boticário"],
+    normas: ["CTF/IBAMA", "Proconve / Controle de Emissões", "Critérios ESG & Sustentabilidade"],
     description: "Registro CTF no IBAMA, licença ambiental de operação, controle de fumaça preta e gestão de resíduos da frota.",
     icon: "Leaf",
     color: "#059669"
@@ -105,7 +95,7 @@ export function evaluateComplianceStandards(carrier) {
 
   return {
     overallPercentage,
-    boticarioApproved: overallPercentage >= 70 && statusQualidade === "CONFORME" && statusSocial === "CONFORME",
+    corporateStandardsApproved: overallPercentage >= 70 && statusQualidade === "CONFORME" && statusSocial === "CONFORME",
     pillars: [
       {
         id: "qualidade_abastecimento",
@@ -126,7 +116,7 @@ export function evaluateComplianceStandards(carrier) {
       {
         id: "seguranca_saude_ssoma",
         name: "3. Saúde & Segurança (SSOMA)",
-        normas: "NR-01 / Lei 13.103 / Diretrizes Grupo Boticário",
+        normas: "NR-01 / Lei 13.103 (Motoristas) / SSOMA",
         score: scoreSSOMA,
         status: statusSSOMA,
         details: `${hasCNHToxicol ? "✓ CNHs + Toxicológico Periódico em dia" : "Pendente Toxicológico"} | ${hasPGR ? "✓ PGR de Segurança Ativo" : "Sem PGR"}`

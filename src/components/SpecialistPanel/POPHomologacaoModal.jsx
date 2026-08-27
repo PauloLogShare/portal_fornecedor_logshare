@@ -149,9 +149,7 @@ export default function POPHomologacaoModal({ isOpen, onClose }) {
               <strong>PRÓX. REVISÃO:</strong> 27/08/2027
             </td>
           </tr>
-        </table>
-
-        <!-- 1. OBJETIVO & COBERTURA NORMATIVA -->
+            <!-- 1. OBJETIVO & COBERTURA NORMATIVA -->
         <h2>1. Objetivo & Cobertura Integral das Normas Regulatórias</h2>
         <p>
           Estabelecer critérios técnicos, objetivos, sanitários e de gestão de risco para qualificação, auditoria documental e homologação de transportadores rodoviários de cargas parceiros na plataforma LogShare, atendendo com rigor a:
@@ -161,7 +159,7 @@ export default function POPHomologacaoModal({ isOpen, onClose }) {
           <li><strong>ISO 9001:2015 (Item 8.4.3)</strong>: Controle de Provedores Externos de Processos e Serviços Logísticos.</li>
           <li><strong>ISO 22716:2007 (Item 6.2)</strong>: Contratos e Subcontratação — GMP Cosméticos.</li>
           <li><strong>EFfCI GMP (Item 8.4.3)</strong>: Boas Práticas e Rastreabilidade de Ingredientes e Matérias-Primas Cosméticas.</li>
-          <li><strong>Requisitos de Fornecedores do Grupo Boticário</strong>: Qualidade, Abastecimento, SSOMA (Saúde e Segurança), Meio Ambiente e Responsabilidade Social / ESG.</li>
+          <li><strong>Requisitos Corporativos de Excelência & ESG</strong>: Qualidade, Abastecimento, SSOMA (Saúde e Segurança), Meio Ambiente e Responsabilidade Social.</li>
         </ul>
 
         <!-- 2. CAMPO DE APLICAÇÃO -->
@@ -286,11 +284,11 @@ export default function POPHomologacaoModal({ isOpen, onClose }) {
           </tbody>
         </table>
 
-        <!-- 5. BOAS PRÁTICAS COSMÉTICOS & GRUPO BOTICÁRIO -->
-        <h2>5. Boas Práticas de Transporte (RDC 48 / EFfCI / Grupo Boticário)</h2>
+        <!-- 5. BOAS PRÁTICAS COSMÉTICOS & DIRETRIZES ESG -->
+        <h2>5. Boas Práticas de Transporte (RDC 48 / EFfCI / Diretrizes ESG)</h2>
         <ul>
           <li><strong>Higiene de Baús (RDC 48 - Item 3.3.5):</strong> Veículos devem ser limpos, secos e isentos de odores, resíduos químicos ou umidade. Proibida contaminação cruzada.</li>
-          <li><strong>SSOMA (Diretrizes Grupo Boticário):</strong> Motoristas profissionais com exame toxicológico periódico regular (Lei 13.103/2015) e cumprimento estrito de jornadas de descanso.</li>
+          <li><strong>SSOMA & Segurança Viária:</strong> Motoristas profissionais com exame toxicológico periódico regular (Lei 13.103/2015) e cumprimento estrito de jornadas de descanso.</li>
           <li><strong>Meio Ambiente:</strong> Comprovação de CTF/IBAMA ativo e controle de emissões/fumaça preta Proconve.</li>
           <li><strong>Responsabilidade Social:</strong> CNDT Trabalhista, CRF FGTS e compromisso formal de combate ao trabalho escravo e infantil.</li>
         </ul>
@@ -332,7 +330,7 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
 - ISO 9001:2015 (Item 8.4.3) — Controle e Informação para Provedores Externos.
 - ISO 22716:2007 (Item 6.2) — Contratos e Terceirização GMP Cosméticos.
 - EFfCI GMP (Item 8.4.3) — Boas Práticas para Ingredientes Cosméticos.
-- Requisitos de Fornecedores do Grupo Boticário (Qualidade, Abastecimento, SSOMA, Meio Ambiente e ESG).
+- Requisitos Corporativos de Excelência (Qualidade, Abastecimento, SSOMA, Meio Ambiente e ESG).
 
 2. MATRIZ DE PONTUAÇÃO (SCORE DE RISCO: 0 A 1000 PONTOS):
 - Pilar 1: Regularidade Documental & Fiscal (0 - 300 pts)
@@ -454,7 +452,7 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
             style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}
           >
             <ShieldCheck size={14} />
-            <span>1. Cobertura das Normas (RDC 48 / ISO / Boticário)</span>
+            <span>1. Cobertura das Normas (RDC 48 / ISO / EFfCI)</span>
           </button>
 
           <button
@@ -501,7 +499,7 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ background: '#EFF6FF', borderLeft: '4px solid #0056D2', padding: '1rem', borderRadius: '0 6px 6px 0' }}>
                 <h3 style={{ fontSize: '1rem', color: '#1E3A8A', margin: '0 0 0.25rem 0' }}>
-                  Aderência Rigorosa às Normas Nacionais, Internacionais e Diretrizes do Grupo Boticário
+                  Aderência Rigorosa às Normas Nacionais, Internacionais e Diretrizes Corporativas de Qualidade & ESG
                 </h3>
                 <p style={{ fontSize: '0.825rem', color: '#1E40AF', margin: 0 }}>
                   Este POP padroniza a auditoria documental e qualificação de transportadores para assegurar que 100% das operações na malha LogShare atendam às exigências regulatórias sanitárias, de qualidade e sustentabilidade.
@@ -562,11 +560,11 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
                   </ul>
                 </div>
 
-                {/* Card 4: Grupo Boticário */}
+                {/* Card 4: Diretrizes ESG */}
                 <div style={{ border: '1px solid #86EFAC', borderRadius: '8px', padding: '1rem', background: '#F0FDF4' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
                     <span style={{ background: '#DCFCE7', color: '#166534', padding: '3px 8px', borderRadius: 4, fontWeight: 800, fontSize: '0.75rem' }}>
-                      Diretrizes Fornecedores Grupo Boticário (ESG & SSOMA)
+                      Diretrizes Corporativas de Sustentabilidade & SSOMA (ESG)
                     </span>
                   </div>
                   <h4 style={{ fontSize: '0.9rem', color: '#065F46', margin: '0 0 0.35rem 0' }}>

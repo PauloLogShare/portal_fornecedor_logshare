@@ -344,14 +344,14 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
             {(() => {
               const compliance = evaluateComplianceStandards(currentCarrier);
               return (
-                <div className="card" style={{ border: compliance.boticarioApproved ? '1.5px solid #86EFAC' : '1.5px solid #CBD5E1', background: '#FFFFFF' }}>
+                <div className="card" style={{ border: compliance.corporateStandardsApproved ? '1.5px solid #86EFAC' : '1.5px solid #CBD5E1', background: '#FFFFFF' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <div>
                       <h4 style={{ fontSize: '0.95rem', color: 'var(--primary-900)', margin: 0 }}>
                         Aderência Normativa & ESG
                       </h4>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                        RDC 48 • ISO 9001 (8.4.3) • ISO 22716 • Grupo Boticário
+                        RDC 48 • ISO 9001 (8.4.3) • ISO 22716 • EFfCI • ESG
                       </span>
                     </div>
                     <span style={{
@@ -397,10 +397,10 @@ export default function DossierDetail({ carrierId, allCarriers, onBack, onUpdate
                     })}
                   </div>
 
-                  {compliance.boticarioApproved && (
+                  {compliance.corporateStandardsApproved && (
                     <div style={{ marginTop: '0.75rem', background: '#EFF6FF', border: '1px solid #93C5FD', padding: '6px 10px', borderRadius: 4, fontSize: '0.75rem', color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Sparkles size={14} color="#2563EB" />
-                      <span><strong>Qualificado:</strong> Apto para operações de cosméticos e requisitos do Grupo Boticário.</span>
+                      <span><strong>Qualificado:</strong> Apto para operações de cosméticos, produtos sensíveis e requisitos corporativos ESG.</span>
                     </div>
                   )}
                 </div>

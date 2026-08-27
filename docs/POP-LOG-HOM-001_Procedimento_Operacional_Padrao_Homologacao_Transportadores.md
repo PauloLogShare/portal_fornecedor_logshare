@@ -16,7 +16,7 @@ Este procedimento assegura a total aderência aos requisitos regulatórios, cont
 - **ISO 9001:2015 (Item 8.4.3)**: Informação e Controle de Provedores Externos de Serviços e Avaliação de Desempenho.
 - **ISO 22716:2007 (Item 6.2)**: Contratos, Terceirização e Diretrizes de Boas Práticas de Fabricação Cosmética (GMP).
 - **EFfCI GMP (Item 8.4.3)**: Boas Práticas para Fabricação e Transporte de Ingredientes Cosméticos.
-- **Requisitos de Fornecedores do Grupo Boticário**: Critérios de Qualidade, Abastecimento, SSOMA (Saúde e Segurança Ocupacional), Meio Ambiente e Responsabilidade Social / Governança (ESG).
+- **Requisitos Corporativos de Excelência**: Critérios de Qualidade, Abastecimento, SSOMA (Saúde e Segurança Ocupacional), Meio Ambiente e Responsabilidade Social / Governança (ESG).
 
 ---
 
@@ -169,7 +169,7 @@ Com base no Score Global de Risco e na verificação de impeditivos críticos:
 
 ---
 
-### 6.5. REQUISITOS DE FORNECEDORES DO GRUPO BOTICÁRIO
+### 6.5. REQUISITOS CORPORATIVOS DE QUALIDADE, ABASTECIMENTO, SSOMA E MEIO AMBIENTE (ESG)
 - **Qualidade & Abastecimento**: Relação da frota auditada com CRLV vigente, RNTRC ativo, PGR e telemetria de trânsito.
 - **Saúde & Segurança Ocupacional (SSOMA)**: CNHs com **exame toxicológico periódico regular** (Lei 13.103/2015) e cumprimento das diretrizes de segurança viária.
 - **Meio Ambiente & Sustentabilidade**: Comprovação de **CTF/IBAMA**, licença ambiental e plano de manutenção preventiva da frota (controle de emissões Proconve).
@@ -201,7 +201,7 @@ graph TD
 | Versão | Data | Responsável | Descrição da Alteração |
 | :--- | :--- | :--- | :--- |
 | **1.0** | 10/01/2026 | Comitê LogShare | Versão inicial do processo de homologação. |
-| **2.0** | 27/08/2026 | Especialista Compliance | Inclusão de seguros como REQUERIDOS (Apólice Estipulada LogShare), matriz de 24 documentos em 5 categorias e conformidade formal com RDC 48, ISO 9001 (8.4.3), ISO 22716 (6.2), EFfCI e Requisitos do Grupo Boticário. |
+| **2.0** | 27/08/2026 | Especialista Compliance | Inclusão de seguros como REQUERIDOS (Apólice Estipulada LogShare), matriz de 24 documentos em 5 categorias e conformidade formal com RDC 48, ISO 9001 (8.4.3), ISO 22716 (6.2), EFfCI e Requisitos Corporativos ESG. |
 
 ---
 *Documento homologado eletronicamente pela LogShare Tecnologia e Logística Colaborativa.*
