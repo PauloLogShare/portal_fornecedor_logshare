@@ -8,14 +8,15 @@ import { jwtDecode } from "jwt-decode";
 const AUTH_STORAGE_KEY = "LOGSHARE_AUTH_USER_V2";
 const GOOGLE_CLIENT_ID_KEY = "LOGSHARE_GOOGLE_CLIENT_ID";
 
-// Default or fallback Client ID (Can be configured in .env or via UI)
+export const OFFICIAL_LOGSHARE_CLIENT_ID = "397849095520-7s10dapvn0ubclhi0tc09017o1tji6gr.apps.googleusercontent.com";
+
 export const DEFAULT_GOOGLE_CLIENT_ID = 
   import.meta.env.VITE_GOOGLE_CLIENT_ID || 
   localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || 
-  "";
+  OFFICIAL_LOGSHARE_CLIENT_ID;
 
 export function getStoredGoogleClientId() {
-  return localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+  return localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || import.meta.env.VITE_GOOGLE_CLIENT_ID || OFFICIAL_LOGSHARE_CLIENT_ID;
 }
 
 export function saveGoogleClientId(clientId) {
