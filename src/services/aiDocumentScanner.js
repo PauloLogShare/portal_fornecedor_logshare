@@ -163,8 +163,14 @@ function detectDocumentTypeFromText(text, docDef) {
   if (upper.includes("REGULARIDADE DO FGTS") || upper.includes("CRF")) {
     return "Certificado de Regularidade do FGTS (CRF)";
   }
-  if (upper.includes("DÍVIDA ATIVA DA UNIÃO") || upper.includes("RECEITA FEDERAL") && upper.includes("CERTIDÃO")) {
+  if (upper.includes("DÍVIDA ATIVA DA UNIÃO") || (upper.includes("RECEITA FEDERAL") && upper.includes("CERTIDÃO"))) {
     return "CND Federal / Previdenciária e Dívida Ativa";
+  }
+  if (upper.includes("FAZENDA ESTADUAL") || upper.includes("SEFAZ") || upper.includes("ICMS") || (upper.includes("ESTADUAL") && upper.includes("CERTIDÃO"))) {
+    return "Certidão Negativa de Débitos Estaduais (ICMS / SEFAZ)";
+  }
+  if (upper.includes("PREFEITURA") || upper.includes("MUNICIPAL") || upper.includes("ISS") || (upper.includes("MUNICIPAIS") && upper.includes("CERTIDÃO"))) {
+    return "Certidão Negativa de Débitos Municipais (ISS / Prefeitura)";
   }
   if (upper.includes("CONTRATO SOCIAL") || upper.includes("JUNTA COMERCIAL")) {
     return "Contrato Social Consolidado";

@@ -110,12 +110,20 @@ export const ALL_SYSTEM_DOCUMENTS = [
     hint: "Certidão emitida pelo Tribunal Superior do Trabalho (TST)."
   },
   {
-    id: "doc_cnd_estadual_municipal",
+    id: "doc_cnd_estadual",
     categoryId: "cat_societaria_fiscal",
-    nome: "Certidões Negativas Estadual e Municipal",
-    shortName: "CND Estadual e Municipal",
+    nome: "Certidão Negativa de Débitos Tributários Estaduais (ICMS / SEFAZ)",
+    shortName: "CND Estadual (ICMS / SEFAZ)",
     obrigatorio: true,
-    hint: "Certidões de quitação de tributos estaduais (ICMS) e municipais (ISS)."
+    hint: "Certidão de regularidade fiscal emitida pela Secretaria da Fazenda Estadual (SEFAZ)."
+  },
+  {
+    id: "doc_cnd_municipal",
+    categoryId: "cat_societaria_fiscal",
+    nome: "Certidão Negativa de Débitos Tributários Municipais (ISS / Prefeitura)",
+    shortName: "CND Municipal (ISS / Prefeitura)",
+    obrigatorio: true,
+    hint: "Certidão de regularidade fiscal emitida pela Prefeitura Municipal sede da transportadora."
   },
   {
     id: "doc_dados_bancarios",
