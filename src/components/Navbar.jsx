@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Truck, Cloud, FileSpreadsheet, RefreshCw, CheckCircle2, Clock, AlertTriangle, LogOut, User, Lock, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Truck, Cloud, FileSpreadsheet, RefreshCw, CheckCircle2, Clock, AlertTriangle, LogOut, User, Lock, ExternalLink, BookOpen } from 'lucide-react';
 import LogShareLogo from './UI/LogShareLogo';
 
 export default function Navbar({
@@ -10,7 +10,8 @@ export default function Navbar({
   onResetData,
   currentUser,
   onLogout,
-  onOpenStandalonePortal
+  onOpenStandalonePortal,
+  onOpenPOP
 }) {
   return (
     <header className="navbar-header no-print">
@@ -136,6 +137,20 @@ export default function Navbar({
             </div>
           )}
 
+          {/* POP Oficial Button */}
+          {onOpenPOP && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onOpenPOP}
+              title="Consultar Procedimento Operacional Padrão (POP-LOG-HOM-001) com regras e normas"
+              style={{ background: 'rgba(0, 210, 255, 0.1)', color: '#00D2FF', borderColor: 'rgba(0, 210, 255, 0.3)', fontSize: '0.725rem', fontWeight: 700 }}
+            >
+              <BookOpen size={13} />
+              <span>POP Homologação</span>
+            </button>
+          )}
+
           {/* Standalone View Button */}
           {onOpenStandalonePortal && (
             <button
@@ -143,7 +158,7 @@ export default function Navbar({
               className="btn btn-secondary btn-sm"
               onClick={onOpenStandalonePortal}
               title="Abrir a visão isolada que o transportador externo enxerga"
-              style={{ background: 'rgba(255,255,255,0.06)', color: '#00D2FF', borderColor: 'rgba(0, 210, 255, 0.3)', fontSize: '0.725rem' }}
+              style={{ background: 'rgba(255,255,255,0.06)', color: '#FFFFFF', borderColor: 'rgba(255, 255, 255, 0.2)', fontSize: '0.725rem' }}
             >
               <ExternalLink size={12} />
               <span>Visão Transportador</span>

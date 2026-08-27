@@ -6,6 +6,7 @@ import DossierDetail from './components/SpecialistPanel/DossierDetail';
 import ValidityMonitorDashboard from './components/SpecialistPanel/ValidityMonitorDashboard';
 import DriveSyncView from './components/GoogleDriveSync/DriveSyncView';
 import GoogleLoginModal from './components/Auth/GoogleLoginModal';
+import POPHomologacaoModal from './components/SpecialistPanel/POPHomologacaoModal';
 import { loadCarriers, resetToDefaults, saveCarrier } from './services/storageService';
 import { syncCarrierToGoogleDrive } from './services/driveSyncService';
 import { calculateDocumentValidity } from './services/validityCalculator';
@@ -18,6 +19,7 @@ export default function App() {
   const [carriers, setCarriers] = useState([]);
   const [selectedCarrierId, setSelectedCarrierId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+  const [isPOPOpen, setIsPOPOpen] = useState(false);
 
   useEffect(() => {
     // Check url param ?mode=carrier
@@ -146,6 +148,13 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         onOpenStandalonePortal={() => setAppMode('CARRIER_STANDALONE')}
+        onOpenPOP={() => setIsPOPOpen(true)}
+      />
+
+      {/* POP Modal */}
+      <POPHomologacaoModal
+        isOpen={isPOPOpen}
+        onClose={() => setIsPOPOpen(false)}
       />
 
       {/* Toast Notification */}
@@ -200,6 +209,7 @@ export default function App() {
                 onSelectCarrier={handleSelectCarrier}
                 onNewCarrierClick={() => setActiveView('carrier')}
                 onOpenDriveSync={() => setActiveView('gdrive')}
+                onOpenPOP={() => setIsPOPOpen(true)}
               />
             )}
           </>

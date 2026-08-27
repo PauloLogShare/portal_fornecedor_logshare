@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ShieldCheck, CheckCircle2, AlertTriangle, XCircle, Clock, Search, Filter, ArrowRight, Download, FileSpreadsheet, Plus, Cloud } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, XCircle, Clock, Search, Filter, ArrowRight, Download, FileSpreadsheet, Plus, Cloud, BookOpen } from 'lucide-react';
 import { exportToCSV, exportToJSON } from '../../services/storageService';
 import LogShareLogo from '../UI/LogShareLogo';
 
-export default function SpecialistDashboard({ carriers, onSelectCarrier, onNewCarrierClick, onOpenDriveSync }) {
+export default function SpecialistDashboard({ carriers, onSelectCarrier, onNewCarrierClick, onOpenDriveSync, onOpenPOP }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'AGUARDANDO_ANALISE' | 'APTA' | 'APTA_COM_RESTRICOES' | 'NAO_APTA'
 
@@ -58,6 +58,18 @@ export default function SpecialistDashboard({ carriers, onSelectCarrier, onNewCa
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {onOpenPOP && (
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={onOpenPOP}
+              style={{ background: 'rgba(0, 210, 255, 0.15)', color: '#00D2FF', borderColor: 'rgba(0, 210, 255, 0.4)', fontWeight: 700 }}
+              title="Consultar Procedimento Operacional Padrão (POP-LOG-HOM-001)"
+            >
+              <BookOpen size={15} />
+              <span>Ver POP (Regras & Normas)</span>
+            </button>
+          )}
+
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => exportToCSV(carriers)}
