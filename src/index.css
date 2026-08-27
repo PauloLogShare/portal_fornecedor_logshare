@@ -490,6 +490,31 @@ a {
   color: white;
 }
 
+.step-item.has-error .step-circle,
+.step-item.completed.has-error .step-circle {
+  border-color: #EF4444 !important;
+  background: #EF4444 !important;
+  color: white !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18) !important;
+}
+
+.step-item.has-error .step-label {
+  color: #DC2626 !important;
+  font-weight: 700;
+}
+
+.step-item.has-error.active .step-circle {
+  border-color: #DC2626 !important;
+  background: #DC2626 !important;
+  color: white !important;
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.28) !important;
+}
+
+.step-item.has-error.active .step-label {
+  color: #B91C1C !important;
+  font-weight: 800;
+}
+
 .step-label {
   font-size: 0.8rem;
   font-weight: 600;

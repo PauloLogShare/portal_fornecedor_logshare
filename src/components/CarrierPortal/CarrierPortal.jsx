@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronLeft, Building2, Truck, ShieldCheck, FileCheck, CheckCircle2, Share2, Copy, Check, Search, Lock, UserCheck } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Building2, Truck, ShieldCheck, FileCheck, CheckCircle2, Share2, Copy, Check, Search, Lock, UserCheck, AlertCircle, AlertTriangle } from 'lucide-react';
 import Step1Cadastral from './Step1Cadastral';
 import Step2Operacional from './Step2Operacional';
 import Step3SegurosRisco from './Step3SegurosRisco';
@@ -8,6 +8,7 @@ import Step5RevisaoProtocolo from './Step5RevisaoProtocolo';
 import CarrierStatusLookup from './CarrierStatusLookup';
 import { generateProtocolNumber, saveCarrier, loadCarriers } from '../../services/storageService';
 import { calculateRiskScore } from '../../services/riskEngineService';
+import { ALL_SYSTEM_DOCUMENTS } from '../../services/validityCalculator';
 import LogShareLogo from '../UI/LogShareLogo';
 
 const STEPS = [
@@ -61,6 +62,8 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
       sensoresSeguranca: ["Trava de 5ª Roda (Desengate)", "Botão de Pânico no Painel"]
     },
     gestaoRisco: {
+      modeloSeguro: "LOGSHARE_ESTIPULADO",
+      estipuladoLogShare: true,
       seguradora: "Porto Seguro Transportes",
       apoliceRCTR_C: "",
       apoliceRC_DC: "",
@@ -71,6 +74,20 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
     },
     documentos: []
   });
+
+  // Validações de obrigatoriedade por etapa para o Stepper
+  const isLogShareInsurance = formData.gestaoRisco?.estipuladoLogShare || formData.gestaoRisco?.modeloSeguro === 'LOGSHARE_ESTIPULADO';
+  const availableSystemDocs = isLogShareInsurance 
+    ? ALL_SYSTEM_DOCUMENTS.filter(d => d.categoryId !== "cat_seguros_pgr") 
+    : ALL_SYSTEM_DOCUMENTS;
+  const mandatoryDocs = availableSystemDocs.filter(d => d.obrigatorio);
+  const missingMandatoryDocs = mandatoryDocs.filter(m => {
+    const uploaded = (formData.documentos || []).find(d => d.id === m.id);
+    return !uploaded || uploaded.status === 'IRREGULAR';
+  });
+
+  const isStep1Missing = !formData.razaoSocial?.trim() || !formData.cnpj?.trim() || !formData.contato?.email?.trim();
+  const isStep4Missing = missingMandatoryDocs.length > 0;
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({
@@ -136,7 +153,6 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
 
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto', paddingBottom: '3rem' }}>
-      {/* Standalone Public Header (Only shown when accessed directly by carrier) */}
       {isStandalone && (
         <div style={{
           display: 'flex',
@@ -149,34 +165,33 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
           <LogShareLogo height={34} variant="dark" />
           {onOpenSpecialistLogin && (
             <button
-              type="button"
-              className="btn btn-secondary btn-sm"
               onClick={onOpenSpecialistLogin}
-              style={{ fontSize: '0.78rem' }}
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '5px' }}
             >
-              <Lock size={13} />
-              <span>Área Restrita Especialistas</span>
+              <UserCheck size={14} />
+              <span>Acesso Especialista / Analista LogShare</span>
             </button>
           )}
         </div>
       )}
 
-      {/* Portal Hero Banner */}
+      {/* Top Banner with Dark Aesthetic */}
       <div style={{
-        background: 'linear-gradient(135deg, #0A192F 0%, #103265 100%)',
-        color: 'white',
+        background: 'linear-gradient(135deg, #0A192F 0%, #0056D2 100%)',
         borderRadius: 'var(--radius-lg)',
         padding: '2rem',
-        marginBottom: '1.75rem',
-        boxShadow: 'var(--shadow-md)',
+        color: 'white',
+        marginBottom: '2rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '1.5rem'
+        gap: '1.5rem',
+        boxShadow: 'var(--shadow-md)'
       }}>
-        <div style={{ flex: '1 1 400px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
+        <div style={{ maxWidth: '600px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <LogShareLogo height={36} variant="color" />
             <span style={{ display: 'inline-block', background: 'rgba(0, 210, 255, 0.15)', color: '#00D2FF', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 700 }}>
               PORTAL DO PARCEIRO TRANSPORTADOR
@@ -191,7 +206,6 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
-          {/* Sub-Tab Navigation Switcher */}
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.1)', padding: '3px', borderRadius: 'var(--radius-md)' }}>
             <button
               className={`btn btn-sm ${portalTab === 'NEW' ? 'btn-primary' : 'btn-secondary'}`}
@@ -226,38 +240,48 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
         </div>
       </div>
 
-      {/* ===================================================================== */}
-      {/* TAB 1: FORMULÁRIO DE CADASTRO (5 ETAPAS)                              */}
-      {/* ===================================================================== */}
       {portalTab === 'NEW' && (
         <>
-          {/* Stepper Navigation */}
           {!isSubmitted && (
             <div className="stepper-nav">
               {STEPS.map((step) => {
                 const Icon = step.icon;
                 const isActive = currentStep === step.id;
                 const isCompleted = currentStep > step.id;
+                const hasError = (step.id === 4 && isStep4Missing) || (step.id === 1 && isStep1Missing && currentStep > 1);
 
                 return (
                   <div
                     key={step.id}
-                    className={`step-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
+                    className={`step-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${hasError ? 'has-error' : ''}`}
                     onClick={() => {
-                      if (isCompleted) setCurrentStep(step.id);
+                      setCurrentStep(step.id);
                     }}
+                    title={step.id === 4 && isStep4Missing ? `${missingMandatoryDocs.length} documento(s) obrigatório(s) pendente(s)` : step.label}
                   >
                     <div className="step-circle">
-                      {isCompleted ? <CheckCircle2 size={16} /> : <Icon size={16} />}
+                      {hasError ? (
+                        <AlertCircle size={17} />
+                      ) : isCompleted ? (
+                        <CheckCircle2 size={16} />
+                      ) : (
+                        <Icon size={16} />
+                      )}
                     </div>
-                    <span className="step-label">{step.label}</span>
+                    <span className="step-label">
+                      {step.label}
+                      {step.id === 4 && isStep4Missing && (
+                        <span style={{ display: 'block', fontSize: '0.675rem', color: '#DC2626', fontWeight: 800 }}>
+                          ({missingMandatoryDocs.length} pendente{missingMandatoryDocs.length > 1 ? 's' : ''})
+                        </span>
+                      )}
+                    </span>
                   </div>
                 );
               })}
             </div>
           )}
 
-          {/* Form Content Card */}
           <div className="card" style={{ padding: '2rem' }}>
             {currentStep === 1 && (
               <Step1Cadastral
@@ -294,10 +318,10 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
                 isSubmitted={isSubmitted}
                 protocol={submittedProtocol}
                 onSubmitFinal={handleFinalSubmit}
+                onGoToStep={(stepNumber) => setCurrentStep(stepNumber)}
               />
             )}
 
-            {/* Step Controls */}
             {!isSubmitted && (
               <div className="step-actions" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
                 {currentStep > 1 ? (
@@ -319,29 +343,27 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
                     className="btn btn-primary"
                     onClick={handleNext}
                   >
-                    <span>Avançar para Etapa {currentStep + 1}</span>
+                    <span>Próxima Etapa</span>
                     <ChevronRight size={18} />
                   </button>
-                ) : null}
+                ) : (
+                  <div></div>
+                )}
               </div>
             )}
           </div>
         </>
       )}
 
-      {/* ===================================================================== */}
-      {/* TAB 2: CONSULTA DE PROTOCOLO E REENVIO DE PENDÊNCIAS                   */}
-      {/* ===================================================================== */}
       {portalTab === 'LOOKUP' && (
         <CarrierStatusLookup
-          carriers={carriers.length > 0 ? carriers : loadCarriers()}
-          onCarrierUpdated={(updated) => {
-            if (onDossierSubmitted) onDossierSubmitted(updated);
+          carriers={carriers}
+          onCarrierUpdated={(updatedCarrier) => {
+            if (onDossierSubmitted) onDossierSubmitted(updatedCarrier);
           }}
         />
       )}
 
-      {/* Footer Legal & LGPD */}
       <footer style={{
         marginTop: '2.5rem',
         paddingTop: '1.25rem',
