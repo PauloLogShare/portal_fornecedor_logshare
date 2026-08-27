@@ -29,10 +29,20 @@ export default function CarrierStatusLookup({ carriers, onCarrierUpdated }) {
     setFoundCarrier(result || null);
   };
 
+  const readFileAsBase64 = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleReuploadDoc = async (docId, file) => {
     if (!file || !foundCarrier) return;
     setUploadingDocId(docId);
 
+    const base64Data = await readFileAsBase64(file);
     const docDef = (foundCarrier.documentos || []).find(d => d.id === docId) || { id: docId, nome: docId };
     const scan = await scanDocumentWithAI(file, docDef);
     setUploadingDocId(null);
@@ -46,6 +56,8 @@ export default function CarrierStatusLookup({ carriers, onCarrierUpdated }) {
           vigencia: scan.extractedVigencia,
           arquivoNome: file.name,
           arquivoTamanho: `${(file.size / 1024).toFixed(1)} KB`,
+          arquivoMime: file.type || "application/pdf",
+          arquivoBase64: base64Data,
           dataEnvio: new Date().toISOString()
         };
       }

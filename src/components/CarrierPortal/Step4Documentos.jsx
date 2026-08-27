@@ -21,13 +21,25 @@ export default function Step4Documentos({ formData, updateFormData }) {
   const docs = formData.documentos || [];
   const [scanningDocId, setScanningDocId] = useState(null);
 
+  const readFileAsBase64 = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileUpload = async (docDef, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setScanningDocId(docDef.id);
 
-    // Call Real AI Document Scanner with PDF.js and neural date regex parser
+    // 1. Read Base64 for Google Drive sync
+    const base64Data = await readFileAsBase64(file);
+
+    // 2. Call Real AI Document Scanner with PDF.js and neural date regex parser
     const aiResult = await scanDocumentWithAI(file, docDef);
 
     setScanningDocId(null);
@@ -43,6 +55,8 @@ export default function Step4Documentos({ formData, updateFormData }) {
       vigencia: aiResult.extractedVigencia || "31/12/2028",
       arquivoNome: file.name,
       arquivoTamanho: `${(file.size / 1024).toFixed(1)} KB`,
+      arquivoMime: file.type || "application/pdf",
+      arquivoBase64: base64Data, // Stored for Google Drive auto-upload
       aiAnalysis: {
         confidence: aiResult.confidence,
         extractedDocType: aiResult.extractedDocType,
