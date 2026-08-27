@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Cloud, Folder, FileText, CheckCircle2, Copy, Check, ExternalLink, RefreshCw, Send, ShieldCheck, Database, Table } from 'lucide-react';
-import { GOOGLE_APPS_SCRIPT_CODE, syncCarrierToGoogleDrive } from '../../services/driveSyncService';
+import { Cloud, Folder, FileText, CheckCircle2, Copy, Check, ExternalLink, RefreshCw, Send, ShieldCheck, Database, Table, Save } from 'lucide-react';
+import { GOOGLE_APPS_SCRIPT_CODE, syncCarrierToGoogleDrive, getStoredWebhookUrl, saveStoredWebhookUrl } from '../../services/driveSyncService';
 import { exportToCSV, exportToJSON } from '../../services/storageService';
 
 export default function DriveSyncView({ carriers }) {
-  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState(getStoredWebhookUrl() || '');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [savedUrlSuccess, setSavedUrlSuccess] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncLog, setSyncLog] = useState([
     {
@@ -22,9 +23,28 @@ export default function DriveSyncView({ carriers }) {
     setTimeout(() => setCopiedCode(false), 2500);
   };
 
+  const handleSaveWebhookUrl = (e) => {
+    e?.preventDefault();
+    saveStoredWebhookUrl(webhookUrl);
+    setSavedUrlSuccess(true);
+    setTimeout(() => setSavedUrlSuccess(false), 2500);
+    setSyncLog(prev => [
+      {
+        timestamp: new Date().toLocaleTimeString('pt-BR'),
+        status: "INFO",
+        message: `URL do Webhook oficial salva como padrão do sistema: ${webhookUrl ? webhookUrl.slice(0, 45) + '...' : '(Simulado Local)'}`
+      },
+      ...prev
+    ]);
+  };
+
   const handleTestSync = async () => {
     const carrier = carriers.find(c => c.id === selectedCarrierForSim) || carriers[0];
     if (!carrier) return;
+
+    if (webhookUrl) {
+      saveStoredWebhookUrl(webhookUrl);
+    }
 
     setIsSyncing(true);
     setSyncLog(prev => [
@@ -108,24 +128,24 @@ export default function DriveSyncView({ carriers }) {
       }}>
         <div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(0, 210, 255, 0.15)', color: '#00D2FF', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-            <span>INTEGRAÇÃO GOOGLE WORKSPACE</span>
+            <span>INTEGRAÇÃO NATIVA GOOGLE WORKSPACE</span>
           </div>
           <h1 style={{ color: 'white', fontSize: '1.6rem', marginBottom: '0.5rem' }}>
-            Sincronização com Google Drive & Planilhas
+            Sincronização com Google Drive & Google Sheets
           </h1>
           <p style={{ color: '#cbd5e1', fontSize: '0.9rem', maxWidth: '650px' }}>
-            Centralize e organize os documentos enviados e pareceres de cada transportador em pastas estruturadas no Google Drive corporativo e alimente a Planilha Google mestre.
+            Armazenamento automatizado de dossiês em pastas hierárquicas no Google Drive por CNPJ e alimentação contínua da Planilha Mestre de Transportadores da LogShare.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => exportToCSV(carriers)}
             style={{ background: 'rgba(255,255,255,0.1)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
           >
             <Table size={15} />
-            <span>Exportar CSV Planilha</span>
+            <span>Exportar CSV</span>
           </button>
 
           <button
@@ -178,11 +198,15 @@ export default function DriveSyncView({ carriers }) {
                         <div style={{ paddingLeft: '1rem', color: '#6EE7B7' }}>
                           📄 Cartao_CNPJ_{cleanCnpj}.pdf<br />
                           📄 Certificado_ANTT_RNTRC.pdf<br />
-                          📄 Apolice_Seguro_RCTR_C.pdf
+                          📄 Apolice_Seguro_RCTRC.pdf<br />
+                          📄 Certidao_Trabalhista_CNDT.pdf
                         </div>
-                        <div>📁 02_Pareceres_Homologacao/</div>
-                        <div style={{ paddingLeft: '1rem', color: '#6EE7B7' }}>
-                          📄 Parecer_Oficial_{c.status || 'ANALISE'}_{cleanCnpj}.pdf<br />
+                        <div style={{ marginTop: '0.25rem' }}>📁 02_Pareceres_Homologacao/</div>
+                        <div style={{ paddingLeft: '1rem', color: '#93C5FD' }}>
+                          📄 Parecer_Oficial_Homologacao_{cleanCnpj}.pdf<br />
+                          📄 Parecer_Oficial_{cleanCnpj}.txt
+                        </div>
+                        <div style={{ marginTop: '0.25rem', color: '#CBD5E1' }}>
                           📄 dossie_completo_{cleanCnpj}.json
                         </div>
                       </div>
@@ -195,34 +219,54 @@ export default function DriveSyncView({ carriers }) {
 
           {/* Webhook Connection Form */}
           <div className="card">
-            <h3 style={{ fontSize: '1.05rem', color: 'var(--primary-900)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Cloud size={20} color="var(--primary-600)" />
-              <span>Configuração do Webhook Google Apps Script</span>
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.05rem', color: 'var(--primary-900)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Cloud size={20} color="var(--primary-600)" />
+                <span>Configuração do Webhook Google Apps Script</span>
+              </h3>
+              {webhookUrl && (
+                <span style={{ fontSize: '0.7rem', background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
+                  ✓ Webhook Ativo
+                </span>
+              )}
+            </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Cole o URL do seu Webhook publicado no Google Apps Script para sincronização ao vivo, ou execute no modo simulado integrado.
+              Insira a URL do seu Webhook publicado no Google Apps Script para salvar como padrão da empresa.
             </p>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="webhookUrl">
-                URL do Webhook (Google Apps Script Web App URL):
-              </label>
-              <input
-                id="webhookUrl"
-                type="url"
-                className="form-input"
-                placeholder="https://script.google.com/macros/s/AKfycbx.../exec (Opcional)"
-                value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
-              />
-              <span className="form-hint">
-                Se deixar em branco, o sistema executará a simulação de sincronização com estrutura de pastas e logs instantâneos.
-              </span>
-            </div>
+            <form onSubmit={handleSaveWebhookUrl} style={{ marginBottom: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="webhookUrl">
+                  URL do Webhook (Google Apps Script Web App URL):
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    id="webhookUrl"
+                    type="url"
+                    className="form-input"
+                    placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-secondary"
+                    style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    title="Salvar URL como padrão permanente do sistema"
+                  >
+                    {savedUrlSuccess ? <Check size={15} color="#10B981" /> : <Save size={15} />}
+                    <span>{savedUrlSuccess ? 'Salvo!' : 'Salvar Padrão'}</span>
+                  </button>
+                </div>
+                <span className="form-hint">
+                  Ao salvar, esta URL ficará gravada para todos os analistas e processos de homologação.
+                </span>
+              </div>
+            </form>
 
             <div className="form-group">
               <label className="form-label" htmlFor="selectCarrierSync">
-                Selecione o Transportador para Teste:
+                Selecione o Transportador para Teste de Disparo:
               </label>
               <select
                 id="selectCarrierSync"
@@ -255,91 +299,83 @@ export default function DriveSyncView({ carriers }) {
                 onClick={handleSyncAll}
                 disabled={isSyncing}
               >
-                <RefreshCw size={15} />
-                <span>Sincronizar Todos ({carriers.length})</span>
+                <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
+                <span>Sincronizar Todos os Dossiês ({carriers.length})</span>
               </button>
-            </div>
-          </div>
-
-          {/* Console de Logs de Sincronização */}
-          <div className="card">
-            <h4 style={{ fontSize: '0.9rem', color: 'var(--primary-900)', marginBottom: '0.5rem' }}>
-              Console de Eventos de Sincronização
-            </h4>
-            <div style={{
-              background: '#0F172A',
-              color: '#E2E8F0',
-              padding: '1rem',
-              borderRadius: 'var(--radius-md)',
-              maxHeight: '180px',
-              overflowY: 'auto',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.35rem'
-            }}>
-              {syncLog.map((log, idx) => (
-                <div key={idx} style={{
-                  color: log.status === 'SUCCESS' ? '#4ADE80' : log.status === 'ERROR' ? '#F87171' : log.status === 'PROCESSING' ? '#60A5FA' : '#94A3B8'
-                }}>
-                  [{log.timestamp}] [{log.status}] {log.message}
-                </div>
-              ))}
             </div>
           </div>
         </div>
 
-        {/* Coluna Direita: Código do Google Apps Script & Guia */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', color: 'var(--primary-900)' }}>
-                Código do Google Apps Script (GAS)
+        {/* Coluna Direita: Instruções de Implantação e Log de Eventos */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Instruções de Implantação */}
+          <div className="card" style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '0.95rem', color: 'var(--primary-900)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Código do Webhook (Google Apps Script)
               </h3>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Copie e cole na sua Planilha Google em Extensões &gt; Apps Script
-              </span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleCopyCode}
+                style={{ fontSize: '0.75rem' }}
+              >
+                {copiedCode ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
+                <span>{copiedCode ? 'Código Copiado!' : 'Copiar Código Apps Script'}</span>
+              </button>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleCopyCode}
-            >
-              {copiedCode ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
-              <span>{copiedCode ? 'Código Copiado!' : 'Copiar Código'}</span>
-            </button>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+              Código pronto com função <code>testarLocalmente</code> para autorização de permissões no Google Drive e escrita automática na Planilha Google Mestre.
+            </p>
+
+            <div style={{
+              maxHeight: '180px',
+              overflowY: 'auto',
+              background: '#0A192F',
+              color: '#A5B4FC',
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.72rem',
+              fontFamily: 'var(--font-mono)'
+            }}>
+              <pre style={{ margin: 0 }}>{GOOGLE_APPS_SCRIPT_CODE}</pre>
+            </div>
           </div>
 
-          {/* Code Viewer */}
-          <div style={{
-            background: '#0A192F',
-            color: '#E2E8F0',
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.75rem',
-            maxHeight: '380px',
-            overflowY: 'auto',
-            whiteSpace: 'pre',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}>
-            {GOOGLE_APPS_SCRIPT_CODE}
-          </div>
+          {/* Console de Eventos de Sincronização */}
+          <div className="card">
+            <h3 style={{ fontSize: '1rem', color: 'var(--primary-900)', marginBottom: '0.75rem' }}>
+              Console de Eventos de Sincronização
+            </h3>
 
-          {/* 4 Step Setup Guide */}
-          <div style={{ background: 'var(--bg-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            <h4 style={{ color: 'var(--primary-900)', fontSize: '0.85rem', marginBottom: '0.4rem', fontWeight: 700 }}>
-              Passo a Passo de Instalação no Google Drive da LogShare:
-            </h4>
-            <ol style={{ paddingLeft: '1.2rem', lineHeight: 1.5 }}>
-              <li>Crie uma nova <strong>Planilha Google</strong> no Google Drive corporativo.</li>
-              <li>Acesse o menu <strong>Extensões &gt; Apps Script</strong>.</li>
-              <li>Cole o código acima substituindo qualquer texto prévio.</li>
-              <li>Clique em <strong>Implantar &gt; Nova Implantação &gt; App da Web</strong> (executar como você, acesso: Qualquer pessoa).</li>
-              <li>Copie a URL de implantação gerada e cole no campo de Webhook.</li>
-            </ol>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              fontSize: '0.75rem',
+              fontFamily: 'var(--font-mono)'
+            }}>
+              {syncLog.map((log, index) => (
+                <div
+                  key={index}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: log.status === 'SUCCESS' ? '#F0FDF4' : log.status === 'ERROR' ? '#FEF2F2' : log.status === 'PROCESSING' ? '#EFF6FF' : '#F8FAFC',
+                    borderLeft: `3px solid ${log.status === 'SUCCESS' ? '#10B981' : log.status === 'ERROR' ? '#EF4444' : log.status === 'PROCESSING' ? '#3B82F6' : '#94A3B8'}`,
+                    color: log.status === 'SUCCESS' ? '#065F46' : log.status === 'ERROR' ? '#991B1B' : '#1E293B',
+                    lineHeight: 1.4
+                  }}
+                >
+                  <span style={{ color: '#64748B', marginRight: '6px' }}>[{log.timestamp}]</span>
+                  <span style={{ fontWeight: 700, marginRight: '6px' }}>[{log.status}]</span>
+                  <span>{log.message}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

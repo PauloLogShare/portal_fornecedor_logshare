@@ -301,3 +301,22 @@ export async function syncCarrierToGoogleDrive(carrier, webhookUrl) {
     }
   }
 }
+
+const WEBHOOK_STORAGE_KEY = "LOGSHARE_DRIVE_WEBHOOK_URL_V1";
+
+export function getStoredWebhookUrl() {
+  return (
+    import.meta.env.VITE_GOOGLE_APPS_SCRIPT_WEBHOOK_URL ||
+    localStorage.getItem(WEBHOOK_STORAGE_KEY) ||
+    ""
+  );
+}
+
+export function saveStoredWebhookUrl(url) {
+  if (url && url.trim()) {
+    localStorage.setItem(WEBHOOK_STORAGE_KEY, url.trim());
+  } else {
+    localStorage.removeItem(WEBHOOK_STORAGE_KEY);
+  }
+}
+
