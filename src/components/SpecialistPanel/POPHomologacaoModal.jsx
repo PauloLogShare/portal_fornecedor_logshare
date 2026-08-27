@@ -1,15 +1,325 @@
 import React, { useState } from 'react';
-import { FileText, X, Printer, Copy, Check, ShieldCheck, Sparkles, BookOpen, Layers, Award, Leaf, Users, CheckCircle2, AlertTriangle, XCircle, ArrowRight } from 'lucide-react';
+import { FileText, X, Printer, Copy, Check, ShieldCheck, Sparkles, BookOpen, Layers, Award, Leaf, Users, CheckCircle2, AlertTriangle, XCircle, ArrowRight, Download } from 'lucide-react';
 import LogShareLogo from '../UI/LogShareLogo';
+import logoImg from '../../assets/logo_logshare.png';
 
 export default function POPHomologacaoModal({ isOpen, onClose }) {
-  const [activeSubTab, setActiveSubTab] = useState('normas'); // 'normas' | 'pontuacao' | 'classificacao' | 'bpf' | 'fluxo'
+  const [activeSubTab, setActiveSubTab] = useState('normas'); // 'normas' | 'pontuacao' | 'classificacao' | 'bpf' | 'fluxo' | 'completo'
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrintFullPOP = () => {
+    const printWindow = window.open('', '_blank', 'width=950,height=800');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const popHtml = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>POP-LOG-HOM-001 — Procedimento Operacional Padrão de Homologação</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 18mm 15mm 18mm 15mm;
+          }
+          body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #1E293B;
+            line-height: 1.5;
+            font-size: 11pt;
+            margin: 0;
+            padding: 0;
+          }
+          .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border: 2px solid #0056D2;
+          }
+          .header-table td {
+            border: 1px solid #CBD5E1;
+            padding: 8px 12px;
+            font-size: 10pt;
+          }
+          .header-title {
+            font-size: 13pt;
+            font-weight: 800;
+            color: #0056D2;
+            text-align: center;
+          }
+          h2 {
+            color: #0056D2;
+            font-size: 12pt;
+            border-bottom: 2px solid #0056D2;
+            padding-bottom: 4px;
+            margin-top: 22px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+          }
+          h3 {
+            color: #0F172A;
+            font-size: 11pt;
+            margin-top: 14px;
+            margin-bottom: 6px;
+          }
+          p, ul, ol {
+            margin-top: 4px;
+            margin-bottom: 10px;
+            font-size: 10pt;
+          }
+          ul {
+            padding-left: 20px;
+          }
+          li {
+            margin-bottom: 4px;
+          }
+          table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0 16px 0;
+            font-size: 9.5pt;
+          }
+          table.data-table th {
+            background: #0056D2;
+            color: #FFFFFF;
+            padding: 6px 8px;
+            border: 1px solid #0056D2;
+            text-align: left;
+            font-weight: 700;
+          }
+          table.data-table td {
+            border: 1px solid #E2E8F0;
+            padding: 6px 8px;
+          }
+          table.data-table tr:nth-child(even) {
+            background: #F8FAFC;
+          }
+          .alert-box {
+            background: #EFF6FF;
+            border-left: 4px solid #0056D2;
+            padding: 10px 14px;
+            margin: 12px 0;
+            font-size: 9.5pt;
+            color: #1E3A8A;
+          }
+          .tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 8.5pt;
+          }
+          .tag-apta { background: #DCFCE7; color: #166534; }
+          .tag-restricoes { background: #FEF3C7; color: #92400E; }
+          .tag-nao-apta { background: #FEE2E2; color: #991B1B; }
+          .footer-sign {
+            margin-top: 40px;
+            border-top: 1px solid #CBD5E1;
+            padding-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9pt;
+            color: #64748B;
+          }
+          .page-break {
+            page-break-before: always;
+          }
+        </style>
+      </head>
+      <body>
+        <!-- Header Oficial Padronizado -->
+        <table class="header-table">
+          <tr>
+            <td style="width: 25%; text-align: center; vertical-align: middle; background: #FFFFFF;">
+              <img src="${window.location.origin}/logo_logshare.png" alt="LogShare" style="max-height: 42px; max-width: 160px;" onerror="this.outerHTML='<strong style=\\'color:#0056D2;font-size:16pt;\\'>LogShare®</strong>'">
+            </td>
+            <td style="width: 50%;" class="header-title">
+              PROCEDIMENTO OPERACIONAL PADRÃO (POP)<br>
+              <span style="font-size: 10pt; color: #334155; font-weight: normal;">QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRIOS</span>
+            </td>
+            <td style="width: 25%; font-size: 8.5pt; line-height: 1.4;">
+              <strong>CÓDIGO:</strong> POP-LOG-HOM-001<br>
+              <strong>VERSÃO:</strong> 2.0<br>
+              <strong>DATA:</strong> 27/08/2026<br>
+              <strong>PRÓX. REVISÃO:</strong> 27/08/2027
+            </td>
+          </tr>
+        </table>
+
+        <!-- 1. OBJETIVO & COBERTURA NORMATIVA -->
+        <h2>1. Objetivo & Cobertura Integral das Normas Regulatórias</h2>
+        <p>
+          Estabelecer critérios técnicos, objetivos, sanitários e de gestão de risco para qualificação, auditoria documental e homologação de transportadores rodoviários de cargas parceiros na plataforma LogShare, atendendo com rigor a:
+        </p>
+        <ul>
+          <li><strong>ANVISA RDC Nº 48/2013 (Item 3.3.5)</strong>: Boas Práticas de Fabricação, Armazenamento e Transporte de Cosméticos e Saneantes.</li>
+          <li><strong>ISO 9001:2015 (Item 8.4.3)</strong>: Controle de Provedores Externos de Processos e Serviços Logísticos.</li>
+          <li><strong>ISO 22716:2007 (Item 6.2)</strong>: Contratos e Subcontratação — GMP Cosméticos.</li>
+          <li><strong>EFfCI GMP (Item 8.4.3)</strong>: Boas Práticas e Rastreabilidade de Ingredientes e Matérias-Primas Cosméticas.</li>
+          <li><strong>Requisitos de Fornecedores do Grupo Boticário</strong>: Qualidade, Abastecimento, SSOMA (Saúde e Segurança), Meio Ambiente e Responsabilidade Social / ESG.</li>
+        </ul>
+
+        <!-- 2. CAMPO DE APLICAÇÃO -->
+        <h2>2. Campo de Aplicação & Responsabilidades</h2>
+        <p>
+          Aplica-se a 100% dos transportadores rodoviários de cargas (empresas frotistas, agregados e transportadores com RNTRC ativo) cadastrados ou em processo de qualificação na LogShare.
+        </p>
+        <p>
+          <strong>Responsabilidades:</strong>
+        </p>
+        <ul>
+          <li><strong>Transportador:</strong> Preencher com exatidão as informações e anexar os 24 documentos oficiais com vigência ativa.</li>
+          <li><strong>Especialista de Homologação LogShare:</strong> Auditar autenticidade, vigências, validar apólices e emitir o Parecer Técnico Oficial.</li>
+          <li><strong>Comitê de Compliance & Qualidade:</strong> Monitorar vigências e aplicar travas e condicionantes operacionais.</li>
+        </ul>
+
+        <!-- 3. MATRIZ DE PONTUAÇÃO (SCORE DE RISCO 0 A 1000) -->
+        <h2>3. Matriz de Pontuação do Transportador (Score de 0 a 1000 pontos)</h2>
+        <p>
+          O Score Global de Risco avalia a maturidade jurídica, operacional e securitária do parceiro:
+        </p>
+
+        <div class="alert-box">
+          <strong>FÓRMULA DO SCORE:</strong> Total (1000 pts) = Regularidade Documental (300) + Saúde Financeira (300) + Gestão de Risco & Seguros (200) + Capacidade Operacional (200)
+        </div>
+
+        <h3>3.1. Pilar 1: Regularidade Documental & Fiscal (0 a 300 pontos)</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 40%;">Documento / Requisito</th>
+              <th style="width: 45%;">Regra de Validação & Autenticidade</th>
+              <th style="width: 15%; text-align: right;">Pontos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Registro RNTRC / ANTT Ativo</strong></td><td>Habilitado na base da ANTT para transporte remunerado</td><td style="text-align: right; font-weight: bold; color: #0056D2;">50 pts</td></tr>
+            <tr><td><strong>Apólice RCTR-C ou Estipulação LogShare</strong></td><td>Apólice própria ativa ou averbação na Apólice Mestre LogShare</td><td style="text-align: right; font-weight: bold; color: #0056D2;">40 pts</td></tr>
+            <tr><td><strong>Apólice RC-DC ou Estipulação LogShare</strong></td><td>Apólice própria ativa ou averbação na Apólice Mestre LogShare</td><td style="text-align: right; font-weight: bold; color: #0056D2;">40 pts</td></tr>
+            <tr><td><strong>Cartão CNPJ Atualizado</strong></td><td>Situação ATIVA e regular na Receita Federal do Brasil</td><td style="text-align: right; font-weight: bold; color: #0056D2;">35 pts</td></tr>
+            <tr><td><strong>Quitação Seguro & PGR Formalizado</strong></td><td>Comprovante de pagamento da parcela e PGR ativo</td><td style="text-align: right; font-weight: bold; color: #0056D2;">50 pts</td></tr>
+            <tr><td><strong>CND Federal + CNDT + CRF FGTS</strong></td><td>Certidões negativas tributárias, trabalhistas e previdenciárias</td><td style="text-align: right; font-weight: bold; color: #0056D2;">55 pts</td></tr>
+            <tr><td><strong>Frota CRLV + CNH Toxicológico + Contrato</strong></td><td>Relação veicular em dia, exames toxicológicos e contrato social</td><td style="text-align: right; font-weight: bold; color: #0056D2;">30 pts</td></tr>
+          </tbody>
+        </table>
+
+        <h3>3.2. Pilar 2: Saúde Financeira & Tempo de Atividade (0 a 300 pontos)</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 40%;">Critério</th>
+              <th style="width: 45%;">Faixa de Avaliação</th>
+              <th style="width: 15%; text-align: right;">Pontos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Tempo de Fundação do CNPJ</strong></td><td>> 5 anos (100 pts) | 2 a 5 anos (70 pts) | < 2 anos (40 pts)</td><td style="text-align: right; font-weight: bold;">Até 100 pts</td></tr>
+            <tr><td><strong>Capital Social Integralizado</strong></td><td>> R$ 500k (100 pts) | R$ 100k a 500k (70 pts) | < R$ 100k (40 pts)</td><td style="text-align: right; font-weight: bold;">Até 100 pts</td></tr>
+            <tr><td><strong>Regularidade Fiscal Plena</strong></td><td>100% CNDs Negativas (100 pts) | Com pendência menor (50 pts)</td><td style="text-align: right; font-weight: bold;">Até 100 pts</td></tr>
+          </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <h3>3.3. Pilar 3: Gestão de Risco, Apólices e PGR (0 a 200 pontos)</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 40%;">Critério</th>
+              <th style="width: 45%;">Faixa de Avaliação</th>
+              <th style="width: 15%; text-align: right;">Pontos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>LMG por Viagem</strong></td><td>>= R$ 1.000.000,00 ou Estipulada LogShare (100 pts) | R$ 500k (70 pts)</td><td style="text-align: right; font-weight: bold;">Até 100 pts</td></tr>
+            <tr><td><strong>Gerenciadora de Risco Homologada</strong></td><td>Buonny, OpenTech, Brasil Risk, AngelLira, Kronos, GoldenSat, etc.</td><td style="text-align: right; font-weight: bold;">50 pts</td></tr>
+            <tr><td><strong>PGR Formalizado & Implementado</strong></td><td>Plano ativo com regras de parada, rotas e escolta armada</td><td style="text-align: right; font-weight: bold;">50 pts</td></tr>
+          </tbody>
+        </table>
+
+        <h3>3.4. Pilar 4: Capacidade Operacional & Rastreamento (0 a 200 pontos)</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 40%;">Critério</th>
+              <th style="width: 45%;">Faixa de Avaliação</th>
+              <th style="width: 15%; text-align: right;">Pontos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Dimensão da Frota Operacional</strong></td><td>>= 20 veículos (100 pts) | 5 a 19 veículos (70 pts) | 1 a 4 veículos (40 pts)</td><td style="text-align: right; font-weight: bold;">Até 100 pts</td></tr>
+            <tr><td><strong>Tecnologias de Rastreamento</strong></td><td>Duplo rastreamento / isca móvel (100 pts) | Telemetria primária (60 pts)</td><td style="text-align: right; font-weight: bold;">Até 100 pts</td></tr>
+          </tbody>
+        </table>
+
+        <!-- 4. CRITÉRIOS DE CLASSIFICAÇÃO -->
+        <h2>4. Critérios de Classificação & Decisão</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 25%;">Status</th>
+              <th style="width: 25%;">Score de Risco</th>
+              <th style="width: 50%;">Diretriz Operacional & Condicionantes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-apta">APTA</span></td>
+              <td><strong>>= 800 pontos</strong></td>
+              <td>Liberação irrestrita para contratação em toda a malha LogShare.</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-restricoes">APTA COM RESTRIÇÕES</span></td>
+              <td><strong>600 a 799 pontos</strong></td>
+              <td>Operação com travas: Teto de carga (R$ 300k-500k), escolta armada para cargas visadas, duplo rastreamento e proibição de redespacho.</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-nao-apta">NÃO APTA</span></td>
+              <td><strong>< 600 pontos ou Dealbreaker</strong></td>
+              <td>Bloqueio cadastral na plataforma LogShare até regularização formal.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- 5. BOAS PRÁTICAS COSMÉTICOS & GRUPO BOTICÁRIO -->
+        <h2>5. Boas Práticas de Transporte (RDC 48 / EFfCI / Grupo Boticário)</h2>
+        <ul>
+          <li><strong>Higiene de Baús (RDC 48 - Item 3.3.5):</strong> Veículos devem ser limpos, secos e isentos de odores, resíduos químicos ou umidade. Proibida contaminação cruzada.</li>
+          <li><strong>SSOMA (Diretrizes Grupo Boticário):</strong> Motoristas profissionais com exame toxicológico periódico regular (Lei 13.103/2015) e cumprimento estrito de jornadas de descanso.</li>
+          <li><strong>Meio Ambiente:</strong> Comprovação de CTF/IBAMA ativo e controle de emissões/fumaça preta Proconve.</li>
+          <li><strong>Responsabilidade Social:</strong> CNDT Trabalhista, CRF FGTS e compromisso formal de combate ao trabalho escravo e infantil.</li>
+        </ul>
+
+        <!-- 6. ASSINATURAS E CONTROLE -->
+        <div class="footer-sign">
+          <div>
+            <p><strong>Comitê de Compliance & Qualidade LogShare</strong><br>
+            Responsável Técnico de Homologação<br>
+            Autenticação Eletrônica: SHA256-HOM-LOGSHARE-2026</p>
+          </div>
+          <div style="text-align: right;">
+            <p><strong>LogShare Tecnologia e Logística Colaborativa</strong><br>
+            Documento Emitido em 27/08/2026<br>
+            Válido em todo território nacional</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(popHtml);
+    printWindow.document.close();
+
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 450);
   };
 
   const handleCopy = () => {
@@ -75,8 +385,8 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            <LogShareLogo height={30} variant="white" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <LogShareLogo height={32} variant="white" />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ background: 'rgba(0, 210, 255, 0.2)', color: '#00D2FF', fontSize: '0.7rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
@@ -90,7 +400,7 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <button
               onClick={handleCopy}
               className="btn btn-secondary btn-sm"
@@ -101,12 +411,13 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
             </button>
 
             <button
-              onClick={handlePrint}
-              className="btn btn-secondary btn-sm"
-              style={{ background: 'rgba(255,255,255,0.1)', color: 'white', borderColor: 'rgba(255,255,255,0.2)', fontSize: '0.75rem' }}
+              onClick={handlePrintFullPOP}
+              className="btn btn-primary btn-sm"
+              style={{ background: '#00D2FF', color: '#0A192F', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Gerar e Imprimir PDF Completo do POP com todas as tabelas e normas"
             >
-              <Printer size={14} />
-              <span>Imprimir</span>
+              <Printer size={15} />
+              <span>Imprimir / Gerar PDF Completo</span>
             </button>
 
             <button
@@ -119,7 +430,8 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
                 padding: '4px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                marginLeft: '0.25rem'
               }}
             >
               <X size={22} />
@@ -523,13 +835,23 @@ TÍTULO: QUALIFICAÇÃO, AUDITORIA E HOMOLOGAÇÃO DE TRANSPORTADORES RODOVIÁRI
           <div>
             <span>Homologado pelo Comitê de Compliance e Qualidade LogShare • Próxima Revisão: 27/08/2027</span>
           </div>
-          <button
-            onClick={onClose}
-            className="btn btn-secondary btn-sm"
-            style={{ fontWeight: 600 }}
-          >
-            Fechar POP
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={handlePrintFullPOP}
+              className="btn btn-primary btn-sm"
+              style={{ fontWeight: 700 }}
+            >
+              <Printer size={14} />
+              <span>Imprimir PDF Completo</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="btn btn-secondary btn-sm"
+              style={{ fontWeight: 600 }}
+            >
+              Fechar
+            </button>
+          </div>
         </div>
       </div>
     </div>
