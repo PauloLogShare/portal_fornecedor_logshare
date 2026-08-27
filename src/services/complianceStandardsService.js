@@ -103,7 +103,7 @@ export function evaluateComplianceStandards(carrier) {
         normas: "ISO 9001:2015 (8.4.3) / ISO 22716 (6.2)",
         score: scoreQualidade,
         status: statusQualidade,
-        details: `${hasRntrc ? "✓ RNTRC Ativo" : "✗ Sem RNTRC"} | ${hasFrotaCRLV ? "✓ Frota Auditada" : "Pendente CRLV"} | ${hasTelemetria ? "✓ Telemetria Ativa" : "Sem Telemetria"}`
+        details: `${hasRntrc ? "✓ RNTRC Ativo" : "✗ Sem RNTRC"} | ${hasFrota ? "✓ Frota Declarada" : "Pendente Frota"} | ${hasTelemetria ? "✓ Telemetria Ativa" : "Sem Telemetria"}`
       },
       {
         id: "sanitaria_cosmeticos",
