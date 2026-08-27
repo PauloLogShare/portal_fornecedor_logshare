@@ -10,6 +10,7 @@ import { generateProtocolNumber, saveCarrier, loadCarriers } from '../../service
 import { calculateRiskScore } from '../../services/riskEngineService';
 import { ALL_SYSTEM_DOCUMENTS } from '../../services/validityCalculator';
 import { generateReceitaFederalPDF } from '../../services/receitaPdfService';
+import { syncCarrierToGoogleDrive, getStoredWebhookUrl } from '../../services/driveSyncService';
 import LogShareLogo from '../UI/LogShareLogo';
 
 const STEPS = [
@@ -195,6 +196,17 @@ export default function CarrierPortal({ onDossierSubmitted, carriers = [], isSta
     saveCarrier(newCarrierRecord);
     setSubmittedProtocol(protocol);
     setIsSubmitted(true);
+
+    // Dispara envio automático para o Google Drive e Planilha Google Sheets
+    try {
+      const webhookUrl = getStoredWebhookUrl();
+      if (webhookUrl) {
+        syncCarrierToGoogleDrive(newCarrierRecord, webhookUrl);
+      }
+    } catch (syncErr) {
+      console.warn("Auto-sync to Google Drive on submit error:", syncErr);
+    }
+
     if (onDossierSubmitted) {
       onDossierSubmitted(newCarrierRecord);
     }

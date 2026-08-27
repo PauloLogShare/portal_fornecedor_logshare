@@ -4,6 +4,7 @@ import { calculateDocumentValidity, formatDateBR, ALL_SYSTEM_DOCUMENTS, OFFICIAL
 import { scanDocumentWithAI } from '../../services/aiDocumentScanner';
 import { saveCarrier } from '../../services/storageService';
 import { calculateRiskScore } from '../../services/riskEngineService';
+import { syncCarrierToGoogleDrive, getStoredWebhookUrl } from '../../services/driveSyncService';
 
 export default function CarrierStatusLookup({ carriers, onCarrierUpdated }) {
   const [cnpjQuery, setCnpjQuery] = useState('');
@@ -124,6 +125,17 @@ export default function CarrierStatusLookup({ carriers, onCarrierUpdated }) {
 
       saveCarrier(updatedCarrier);
       setFoundCarrier(updatedCarrier);
+
+      // Dispara atualização automática no Google Drive
+      try {
+        const webhookUrl = getStoredWebhookUrl();
+        if (webhookUrl) {
+          syncCarrierToGoogleDrive(updatedCarrier, webhookUrl);
+        }
+      } catch (syncErr) {
+        console.warn("Auto-sync to Google Drive on reupload error:", syncErr);
+      }
+
       if (onCarrierUpdated) onCarrierUpdated(updatedCarrier);
       setSuccessMessage(`Documento "${docDef.nome}" anexado com sucesso e enviado para análise do especialista!`);
       setTimeout(() => setSuccessMessage(null), 5000);
