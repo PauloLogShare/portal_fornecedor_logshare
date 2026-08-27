@@ -6,18 +6,64 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * =========================================================================
  * LOGSHARE - GOOGLE DRIVE & GOOGLE SHEETS WEBHOOK DE HOMOLOGAÇÃO
  * =========================================================================
- * Instruções de Implantação no Google Apps Script:
- * 1. Abra o Google Drive da LogShare e crie uma nova "Planilha Google" (ex: "LogShare_Homologacao_Transportadores").
- * 2. Na planilha, clique no menu superior: Extensões > Apps Script.
- * 3. Cole este código substituindo todo o conteúdo existente.
- * 4. Clique em "Implantar" (botão azul no topo) > "Nova Implantação".
- * 5. Escolha o tipo: "App da Web" (Web App).
- * 6. Configuração OBRIGATÓRIA:
- *    - Executar como: "Eu" (sua conta Google)
- *    - Quem pode acessar: "Qualquer pessoa" (Anyone) -> CRUCIAL para não dar erro 401
- * 7. Copie o "URL do aplicativo da Web" gerado (termina com /exec) e cole no painel LogShare.
+ * 
+ * 📌 PASSO A PASSO PARA ATIVAÇÃO (DURAÇÃO: 2 MINUTOS):
+ * 
+ * 1. Abra sua Planilha do Google Sheets (ex: "LogShare_Homologacao_Transportadores").
+ * 2. No menu superior da planilha, clique em: Extensões > Apps Script.
+ * 3. Apague tudo o que estiver lá e COLE todo este código.
+ * 
+ * ⚠️ ETAPA FUNDAMENTAL DE PERMISSÃO:
+ * 4. No topo da tela do Apps Script, selecione a função "testarLocalmente" no menu dropdown e clique em "Executar" (ícone de Play ▶️).
+ * 5. O Google vai exibir a janela "Autorização necessária":
+ *    - Clique em "Revisar permissões" > Escolha sua conta Google.
+ *    - Clique em "Avançado" (link pequeno no rodapé) > "Acessar (não seguro)".
+ *    - Clique em "Permitir".
+ *    *(Isso autoriza o script a criar pastas no Drive e escrever na planilha).*
+ * 
+ * 🚀 IMPLANTAÇÃO COMO WEBHOOK:
+ * 6. Clique no botão azul "Implantar" (topo direito) > "Nova Implantação".
+ * 7. Clique na engrenagem ⚙️ ao lado de "Selecionar tipo" e escolha "App da Web" (Web App).
+ * 8. Preencha a configuração:
+ *    - Descrição: "LogShare Webhook v1"
+ *    - Executar como: "Eu (seu e-mail)"
+ *    - Quem pode acessar: "Qualquer pessoa" (Anyone) -> OBRIGATÓRIO!
+ * 9. Clique em "Implantar" e copie o "URL do aplicativo da Web" (termina com /exec).
+ * 10. Cole esse URL no painel da LogShare e clique em "Testar Sincronização".
  * =========================================================================
  */
+
+// Função de Teste Local no editor do Apps Script (Gera as permissões necessárias)
+function testarLocalmente() {
+  var mockCarrier = {
+    protocol: "HOM-2026-TESTE",
+    cnpj: "12.345.678/0001-90",
+    razaoSocial: "TransRodoviário Express do Brasil Ltda",
+    nomeFantasia: "TransRodoviário Brasil",
+    status: "APTA",
+    scoreTotal: 880,
+    contato: {
+      responsavel: "Carlos Eduardo Silveira",
+      email: "carlos@transrodoviario.com.br",
+      telefone: "(11) 98765-4321"
+    },
+    gestaoRisco: {
+      seguradora: "Porto Seguro Transportes",
+      lmg: 1500000
+    },
+    parecer: {
+      statusFinal: "APTA",
+      dataEmissao: new Date().toISOString(),
+      resumoExecutivo: "Transportador com documentação 100% regular e baixo risco operacional.",
+      restricoesOperacionais: ["Monitoramento via Isca Carga", "Escolta acima de R$ 800k"],
+      acoesRequeridas: "Nenhuma pendência."
+    }
+  };
+
+  var resultado = processarSincronizacao(mockCarrier);
+  Logger.log("Resultado do Teste Local: " + JSON.stringify(resultado));
+  return resultado;
+}
 
 function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({
@@ -29,104 +75,144 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    var rawData = e.postData ? e.postData.contents : "{}";
+    var rawData = "";
+    if (e && e.postData && e.postData.contents) {
+      rawData = e.postData.contents;
+    } else if (e && e.parameter && e.parameter.data) {
+      rawData = e.parameter.data;
+    } else {
+      rawData = JSON.stringify(e ? e.parameter : {});
+    }
+    
     var data = JSON.parse(rawData);
-    
-    // 1. Obter ou Criar Pasta Principal no Google Drive
-    var rootFolderName = "LogShare - Homologação de Transportadores";
-    var rootFolders = DriveApp.getFoldersByName(rootFolderName);
-    var rootFolder;
-    
-    if (rootFolders.hasNext()) {
-      rootFolder = rootFolders.next();
-    } else {
-      rootFolder = DriveApp.createFolder(rootFolderName);
-    }
-    
-    // 2. Criar Pasta Específica da Transportadora: [CNPJ Limpo] - [Razão Social]
-    var cleanCnpj = (data.cnpj || "SEM_CNPJ").replace(/[^0-9]/g, "");
-    var carrierFolderName = cleanCnpj + " - " + (data.razaoSocial || "Transportadora");
-    var carrierFolders = rootFolder.getFoldersByName(carrierFolderName);
-    var carrierFolder;
-    
-    if (carrierFolders.hasNext()) {
-      carrierFolder = carrierFolders.next();
-    } else {
-      carrierFolder = rootFolder.createFolder(carrierFolderName);
-    }
-    
-    // 3. Subpastas: Documentos e Pareceres
-    var docsFolder = getOrCreateSubfolder(carrierFolder, "01_Documentos_Cadastrais");
-    var parecerFolder = getOrCreateSubfolder(carrierFolder, "02_Pareceres_Homologacao");
-    
-    // 4. Salvar Dossiê em JSON e Resumo TXT
-    var jsonFile = carrierFolder.createFile("dossie_completo_" + cleanCnpj + ".json", JSON.stringify(data, null, 2), "application/json");
-    
-    if (data.parecer) {
-      var parecerText = "PARECER OFICIAL DE HOMOLOGAÇÃO LOGSHARE\\n" +
-                        "==================================\\n" +
-                        "Protocolo: " + (data.protocol || "N/A") + "\\n" +
-                        "Transportadora: " + (data.razaoSocial || "") + " (CNPJ: " + (data.cnpj || "") + ")\\n" +
-                        "Status Final: " + (data.parecer.statusFinal || "") + "\\n" +
-                        "Score de Risco: " + (data.scoreTotal || 0) + "/1000\\n" +
-                        "Data: " + (data.parecer.dataEmissao || new Date().toISOString()) + "\\n\\n" +
-                        "RESUMO EXECUTIVO:\\n" + (data.parecer.resumoExecutivo || "") + "\\n\\n" +
-                        "RESTRIÇÕES OPERACIONAIS:\\n" + ((data.parecer.restricoesOperacionais || []).join("\\n- ")) + "\\n\\n" +
-                        "AÇÕES REQUERIDAS:\\n" + (data.parecer.acoesRequeridas || "Nenhuma.");
-      parecerFolder.createFile("Parecer_Oficial_" + cleanCnpj + ".txt", parecerText, "text/plain");
-    }
-    
-    // 5. Atualizar Linha na Planilha Google
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    if (sheet.getLastRow() === 0) {
-      // Cria cabeçalho se planilha estiver vazia
-      sheet.appendRow([
-        "Data/Hora",
-        "Protocolo",
-        "CNPJ",
-        "Razão Social",
-        "Nome Fantasia",
-        "Status Homologação",
-        "Score Risco",
-        "Seguradora",
-        "LMG (R$)",
-        "Link Pasta Drive",
-        "Contato Responsável",
-        "E-mail",
-        "Telefone"
-      ]);
-      sheet.getRange(1, 1, 1, 13).setFontWeight("bold").setBackground("#0056D2").setFontColor("#FFFFFF");
-    }
-    
-    sheet.appendRow([
-      new Date(),
-      data.protocol || "N/A",
-      data.cnpj || "",
-      data.razaoSocial || "",
-      data.nomeFantasia || "",
-      data.parecer ? data.parecer.statusFinal : (data.status || "AGUARDANDO_ANALISE"),
-      data.scoreTotal || 0,
-      data.gestaoRisco ? data.gestaoRisco.seguradora : "",
-      data.gestaoRisco ? data.gestaoRisco.lmg : "",
-      carrierFolder.getUrl(),
-      data.contato ? data.contato.responsavel : "",
-      data.contato ? data.contato.email : "",
-      data.contato ? data.contato.telefone : ""
-    ]);
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "SUCCESS",
-      message: "Transportador sincronizado com sucesso no Google Drive e Planilha!",
-      folderUrl: carrierFolder.getUrl(),
-      carrier: data.razaoSocial
-    })).setMimeType(ContentService.MimeType.JSON);
-    
+    var resultado = processarSincronizacao(data);
+
+    return ContentService.createTextOutput(JSON.stringify(resultado))
+      .setMimeType(ContentService.MimeType.JSON);
+
   } catch (error) {
+    Logger.log("Erro no doPost: " + error.toString());
     return ContentService.createTextOutput(JSON.stringify({
       status: "ERROR",
       message: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+function processarSincronizacao(data) {
+  // 1. Obter ou Criar Pasta Raiz no Google Drive
+  var rootFolderName = "LogShare - Homologação de Transportadores";
+  var rootFolders = DriveApp.getFoldersByName(rootFolderName);
+  var rootFolder;
+
+  if (rootFolders.hasNext()) {
+    rootFolder = rootFolders.next();
+  } else {
+    rootFolder = DriveApp.createFolder(rootFolderName);
+  }
+
+  // 2. Criar Pasta da Transportadora: [CNPJ Limpo] - [Razão Social]
+  var cleanCnpj = (data.cnpj || "SEM_CNPJ").replace(/[^0-9]/g, "");
+  var carrierFolderName = cleanCnpj + " - " + (data.razaoSocial || "Transportadora");
+  var carrierFolders = rootFolder.getFoldersByName(carrierFolderName);
+  var carrierFolder;
+
+  if (carrierFolders.hasNext()) {
+    carrierFolder = carrierFolders.next();
+  } else {
+    carrierFolder = rootFolder.createFolder(carrierFolderName);
+  }
+
+  // 3. Subpastas: Documentos e Pareceres
+  var docsFolder = getOrCreateSubfolder(carrierFolder, "01_Documentos_Cadastrais");
+  var parecerFolder = getOrCreateSubfolder(carrierFolder, "02_Pareceres_Homologacao");
+
+  // 4. Salvar Dossiê Completo em JSON
+  carrierFolder.createFile(
+    "dossie_completo_" + cleanCnpj + ".json", 
+    JSON.stringify(data, null, 2), 
+    "application/json"
+  );
+
+  // 5. Salvar Parecer Oficial Formatado em TXT
+  if (data.parecer) {
+    var parecerText = "PARECER OFICIAL DE HOMOLOGAÇÃO DE TRANSPORTADOR — LOGSHARE\\n" +
+                      "============================================================\\n" +
+                      "Protocolo: " + (data.protocol || "N/A") + "\\n" +
+                      "Transportadora: " + (data.razaoSocial || "") + " (CNPJ: " + (data.cnpj || "") + ")\\n" +
+                      "Status Final: " + (data.parecer.statusFinal || data.status || "") + "\\n" +
+                      "Score Global de Risco: " + (data.scoreTotal || 0) + " / 1000 pts\\n" +
+                      "Data de Emissão: " + (data.parecer.dataEmissao || new Date().toISOString()) + "\\n\\n" +
+                      "1. RESUMO EXECUTIVO:\\n" + (data.parecer.resumoExecutivo || "Não informado.") + "\\n\\n" +
+                      "2. RESTRIÇÕES & CONDICIONANTES OPERACIONAIS:\\n" + 
+                      ((data.parecer.restricoesOperacionais && data.parecer.restricoesOperacionais.length > 0) 
+                        ? "- " + data.parecer.restricoesOperacionais.join("\\n- ") 
+                        : "Nenhuma restrição imposta.") + "\\n\\n" +
+                      "3. AÇÕES REQUERIDAS / PENDÊNCIAS:\\n" + (data.parecer.acoesRequeridas || "Nenhuma pendência.");
+
+    parecerFolder.createFile("Parecer_Oficial_" + cleanCnpj + ".txt", parecerText, "text/plain");
+  }
+
+  // 6. Atualizar Linha na Planilha Google
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet;
+
+  if (spreadsheet) {
+    sheet = spreadsheet.getActiveSheet();
+  } else {
+    // Se o script for standalone, busca ou cria uma planilha na pasta raiz
+    var sheetFiles = rootFolder.getFilesByName("LogShare_Planilha_Mestre");
+    if (sheetFiles.hasNext()) {
+      sheet = SpreadsheetApp.open(sheetFiles.next()).getActiveSheet();
+    } else {
+      var newSheet = SpreadsheetApp.create("LogShare_Planilha_Mestre");
+      DriveApp.getFileById(newSheet.getId()).moveTo(rootFolder);
+      sheet = newSheet.getActiveSheet();
+    }
+  }
+
+  if (sheet.getLastRow() === 0) {
+    // Cabeçalho estilizado
+    sheet.appendRow([
+      "Data/Hora",
+      "Protocolo",
+      "CNPJ",
+      "Razão Social",
+      "Nome Fantasia",
+      "Status Homologação",
+      "Score Risco",
+      "Seguradora",
+      "LMG (R$)",
+      "Link Pasta Drive",
+      "Contato Responsável",
+      "E-mail",
+      "Telefone"
+    ]);
+    sheet.getRange(1, 1, 1, 13).setFontWeight("bold").setBackground("#0056D2").setFontColor("#FFFFFF");
+  }
+
+  sheet.appendRow([
+    new Date(),
+    data.protocol || "N/A",
+    data.cnpj || "",
+    data.razaoSocial || "",
+    data.nomeFantasia || "",
+    data.parecer ? data.parecer.statusFinal : (data.status || "AGUARDANDO_ANALISE"),
+    data.scoreTotal || 0,
+    data.gestaoRisco ? data.gestaoRisco.seguradora : "",
+    data.gestaoRisco ? data.gestaoRisco.lmg : "",
+    carrierFolder.getUrl(),
+    data.contato ? data.contato.responsavel : "",
+    data.contato ? data.contato.email : "",
+    data.contato ? data.contato.telefone : ""
+  ]);
+
+  return {
+    status: "SUCCESS",
+    message: "Transportador sincronizado com sucesso no Google Drive e Planilha!",
+    folderUrl: carrierFolder.getUrl(),
+    carrier: data.razaoSocial
+  };
 }
 
 function getOrCreateSubfolder(parent, name) {
@@ -140,7 +226,6 @@ function getOrCreateSubfolder(parent, name) {
 
 export async function syncCarrierToGoogleDrive(carrier, webhookUrl) {
   if (!webhookUrl || !webhookUrl.trim()) {
-    // Return simulated success with local mockup URL
     const cleanCnpj = (carrier.cnpj || "00000000000000").replace(/[^0-9]/g, "");
     return {
       success: true,
@@ -154,7 +239,6 @@ export async function syncCarrierToGoogleDrive(carrier, webhookUrl) {
   const cleanUrl = webhookUrl.trim();
 
   try {
-    // Google Apps Script requires text payload and handles redirect
     const response = await fetch(cleanUrl, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -170,7 +254,7 @@ export async function syncCarrierToGoogleDrive(carrier, webhookUrl) {
         result = JSON.parse(responseText);
       }
     } catch (e) {
-      console.warn("Response was not raw JSON, parsing as text confirmation...", e);
+      console.warn("Response not direct JSON", e);
     }
 
     if (result && result.status === "ERROR") {
@@ -191,9 +275,8 @@ export async function syncCarrierToGoogleDrive(carrier, webhookUrl) {
       message: result?.message || `Transportador ${carrier.razaoSocial} sincronizado com sucesso no Google Drive & Sheets!`
     };
   } catch (err) {
-    console.warn("Standard fetch failed, attempting no-cors fallback transmission...", err);
-    
-    // Google Apps Script redirect often triggers opaque responses in browser fetch
+    console.warn("Fetch failed, attempting fallback...", err);
+
     try {
       await fetch(cleanUrl, {
         method: "POST",
